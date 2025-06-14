@@ -16,6 +16,7 @@ public class ReleasePlaceUseCaseTest
     private final ReleasePlaceService releasePlaceService = new ReleasePlaceService();
     private final AddPlaceToOrderService addPlaceToOrderService = new AddPlaceToOrderService();
 
+    private final CreatePlaceUseCase createPlaceUseCase = new CreatePlaceApplicationService(placesRepository);
     private final StartOrderUseCase startOrderUseCase = new StartOrderApplicationService(ordersRepository);
     private final SelectPlaceUseCase selectPlaceUseCase = new SelectPlaceApplicationService(selectPlaceService, placesRepository, ordersRepository);
     private final ReleasePlaceUseCase releasePlaceUseCase = new ReleasePlaceApplicationService(releasePlaceService, placesRepository, ordersRepository);
@@ -25,7 +26,7 @@ public class ReleasePlaceUseCaseTest
     {
         // given
         final PlaceId placeId = new PlaceId(new Row(1), new Seat(1));
-        placesRepository.save(Place.create(placeId));
+        createPlaceUseCase.create(placeId);
 
         final OrderId orderId = startOrderUseCase.startOrder();
 

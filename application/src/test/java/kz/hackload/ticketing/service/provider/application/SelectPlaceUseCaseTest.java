@@ -15,6 +15,7 @@ public class SelectPlaceUseCaseTest
 
     private final SelectPlaceService selectPlaceService = new SelectPlaceService();
 
+    private final CreatePlaceUseCase createPlaceUseCase = new CreatePlaceApplicationService(placesRepository);
     private final SelectPlaceUseCase selectPlaceUseCase = new SelectPlaceApplicationService(selectPlaceService, placesRepository, ordersRepository);
     private final StartOrderUseCase startOrderUseCase = new StartOrderApplicationService(ordersRepository);
 
@@ -23,7 +24,7 @@ public class SelectPlaceUseCaseTest
     {
         // given
         final PlaceId placeId = new PlaceId(new Row(1), new Seat(1));
-        placesRepository.save(Place.create(placeId));
+        createPlaceUseCase.create(placeId);
 
         final OrderId orderId = startOrderUseCase.startOrder();
 
