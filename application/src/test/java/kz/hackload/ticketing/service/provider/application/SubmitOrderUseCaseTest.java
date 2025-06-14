@@ -7,46 +7,42 @@ import org.junit.jupiter.api.Test;
 import kz.hackload.ticketing.service.provider.domain.orders.*;
 import kz.hackload.ticketing.service.provider.domain.places.*;
 
-public class ReleasePlaceUseCaseTest
+public class SubmitOrderUseCaseTest
 {
-    private final PlacesRepository placesRepository = new InMemoryPlacesRepository();
     private final OrdersRepository ordersRepository = new InMemoryOrdersRepository();
+    private final PlacesRepository placesRepository = new InMemoryPlacesRepository();
 
     private final SelectPlaceService selectPlaceService = new SelectPlaceService();
-    private final ReleasePlaceService releasePlaceService = new ReleasePlaceService();
     private final AddPlaceToOrderService addPlaceToOrderService = new AddPlaceToOrderService();
 
     private final CreatePlaceUseCase createPlaceUseCase = new CreatePlaceApplicationService(placesRepository);
     private final StartOrderUseCase startOrderUseCase = new StartOrderApplicationService(ordersRepository);
     private final SelectPlaceUseCase selectPlaceUseCase = new SelectPlaceApplicationService(selectPlaceService, placesRepository, ordersRepository);
+    private final SubmitOrderUseCase submitOrderUseCase = new SubmitOrderApplicationService(ordersRepository);
     private final AddPlaceToOrderUseCase addPlaceToOrderUseCase = new AddPlaceToOrderApplicationService(ordersRepository, placesRepository, addPlaceToOrderService);
-    private final ReleasePlaceUseCase releasePlaceUseCase = new ReleasePlaceApplicationService(releasePlaceService, placesRepository, ordersRepository);
 
     @Test
-    void shouldReleasePlace() throws PlaceCanNotBeAddedToOrderException,
-            PlaceAlreadySelectedException,
-            PlaceAlreadyReleasedException,
-            OrderNotStartedException,
-            PlaceNotAddedException,
-            PlaceIsNotSelectedException,
-            PlaceSelectedForAnotherOrderException,
-            PlaceAlreadyAddedException
+    void shouldSubmitOrder() throws PlaceCanNotBeAddedToOrderException, PlaceAlreadySelectedException, OrderNotStartedException, NoPlacesAddedException, PlaceIsNotSelectedException, PlaceSelectedForAnotherOrderException, PlaceAlreadyAddedException
     {
         // given
         final PlaceId placeId = new PlaceId(new Row(1), new Seat(1));
         createPlaceUseCase.create(placeId);
 
         final OrderId orderId = startOrderUseCase.startOrder();
-
         selectPlaceUseCase.selectPlaceFor(placeId, orderId);
         addPlaceToOrderUseCase.addPlaceToOrder(placeId, orderId);
 
         // when
-        releasePlaceUseCase.releasePlace(placeId);
+        submitOrderUseCase.submit(orderId);
 
         // then
-        final Order result = ordersRepository.findById(orderId).orElseThrow();
-        assertThat(result.places()).isEmpty();
-        assertThat(result.uncommittedEvents()).isEmpty();
+        final Order order = ordersRepository.findById(orderId).orElseThrow();
+        assertThat(order.places())
+                .hasSize(1)
+                .first()
+                .isEqualTo(placeId);
+
+        assertThat(order.status()).isEqualTo(OrderStatus.SUBMITTED);
+        assertThat(order.uncommittedEvents()).isEmpty();
     }
 }
