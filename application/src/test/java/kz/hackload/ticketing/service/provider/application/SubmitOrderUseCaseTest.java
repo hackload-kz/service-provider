@@ -22,7 +22,13 @@ public class SubmitOrderUseCaseTest
     private final AddPlaceToOrderUseCase addPlaceToOrderUseCase = new AddPlaceToOrderApplicationService(ordersRepository, placesRepository, addPlaceToOrderService);
 
     @Test
-    void shouldSubmitOrder() throws PlaceCanNotBeAddedToOrderException, PlaceAlreadySelectedException, OrderNotStartedException, NoPlacesAddedException, PlaceIsNotSelectedException, PlaceSelectedForAnotherOrderException, PlaceAlreadyAddedException
+    void shouldSubmitOrder() throws PlaceCanNotBeAddedToOrderException,
+            PlaceAlreadySelectedException,
+            OrderNotStartedException,
+            NoPlacesAddedException,
+            PlaceIsNotSelectedException,
+            PlaceSelectedForAnotherOrderException,
+            PlaceAlreadyAddedException
     {
         // given
         final PlaceId placeId = new PlaceId(new Row(1), new Seat(1));
