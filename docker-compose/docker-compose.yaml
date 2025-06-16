@@ -1,0 +1,9 @@
+services:
+  postgresql:
+    image: postgres
+    environment:
+      POSTGRES_DB: hackload_ticketing_sp
+      POSTGRES_USER: hackload_ticketing_sp
+      POSTGRES_PASSWORD: hackload_ticketing_sp
+    ports:
+      - "5432:5432"
