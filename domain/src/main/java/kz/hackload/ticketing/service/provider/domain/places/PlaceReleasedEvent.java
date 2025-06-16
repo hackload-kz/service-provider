@@ -4,4 +4,9 @@ import kz.hackload.ticketing.service.provider.domain.orders.OrderId;
 
 public record PlaceReleasedEvent(OrderId orderId) implements PlaceDomainEvent
 {
+    @Override
+    public String type()
+    {
+        return "place_released_event";
+    }
 }

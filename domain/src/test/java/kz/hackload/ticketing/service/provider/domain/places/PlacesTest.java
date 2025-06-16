@@ -11,11 +11,13 @@ import org.junit.jupiter.api.Test;
 import kz.hackload.ticketing.service.provider.domain.AggregateRestoreException;
 import kz.hackload.ticketing.service.provider.domain.DomainEvent;
 import kz.hackload.ticketing.service.provider.domain.InMemoryOrdersRepository;
+import kz.hackload.ticketing.service.provider.domain.InMemoryPlacesRepository;
 import kz.hackload.ticketing.service.provider.domain.orders.OrderId;
 import kz.hackload.ticketing.service.provider.domain.orders.OrdersRepository;
 
 public class PlacesTest
 {
+    private final PlacesRepository placesRepository = new InMemoryPlacesRepository();
     private final OrdersRepository ordersRepository = new InMemoryOrdersRepository();
     private final OrderId orderId = ordersRepository.nextId();
 
@@ -24,8 +26,8 @@ public class PlacesTest
     {
         final var row = new Row(1);
         final var seat = new Seat(1);
-        final var placeId = new PlaceId(row, seat);
-        final var place = Place.create(placeId);
+        final var placeId = placesRepository.nextId();
+        final var place = Place.create(placeId, row, seat);
 
         assertThat(place.id()).isEqualTo(placeId);
         assertThat(place.row()).isEqualTo(row);
@@ -38,9 +40,8 @@ public class PlacesTest
     {
         final var row = new Row(1);
         final var seat = new Seat(1);
-        final var placeId = new PlaceId(row, seat);
-
-        final var place = Place.create(placeId);
+        final var placeId = placesRepository.nextId();
+        final var place = Place.create(placeId, row, seat);
         place.commitEvents();
 
         place.selectFor(orderId);
@@ -65,8 +66,8 @@ public class PlacesTest
     {
         final var row = new Row(1);
         final var seat = new Seat(1);
-        final var placeId = new PlaceId(row, seat);
-        final var place = Place.create(placeId);
+        final var placeId = placesRepository.nextId();
+        final var place = Place.create(placeId, row, seat);
         place.commitEvents();
 
         place.selectFor(orderId);
@@ -85,8 +86,8 @@ public class PlacesTest
     {
         final var row = new Row(1);
         final var seat = new Seat(1);
-        final var placeId = new PlaceId(row, seat);
-        final var place = Place.create(placeId);
+        final var placeId = placesRepository.nextId();
+        final var place = Place.create(placeId, row, seat);
 
         place.selectFor(orderId);
 
@@ -100,8 +101,8 @@ public class PlacesTest
     {
         final var row = new Row(1);
         final var seat = new Seat(1);
-        final var placeId = new PlaceId(row, seat);
-        final var place = Place.create(placeId);
+        final var placeId = placesRepository.nextId();
+        final var place = Place.create(placeId, row, seat);
 
         place.selectFor(orderId);
         place.release();
@@ -116,23 +117,25 @@ public class PlacesTest
     {
         final var row = new Row(1);
         final var seat = new Seat(1);
-        final var placeId = new PlaceId(row, seat);
-
-        final Place place = Place.create(placeId);
+        final var placeId = placesRepository.nextId();
+        final var place = Place.create(placeId, row, seat);
 
         assertThat(place.isFree()).isTrue();
         assertThat(place.selectedFor()).isEmpty();
         assertThat(place.uncommittedEvents())
                 .hasSize(1)
                 .first()
-                .isEqualTo(new PlaceCreatedEvent());
+                .isEqualTo(new PlaceCreatedEvent(row, seat));
     }
 
     @Test
     void shouldRestorePlaceFromEvents() throws AggregateRestoreException
     {
-        final PlaceId placeId = new PlaceId(new Row(1), new Seat(1));
-        final PlaceCreatedEvent event = new PlaceCreatedEvent();
+        final var row = new Row(1);
+        final var seat = new Seat(1);
+        final var placeId = placesRepository.nextId();
+
+        final PlaceCreatedEvent event = new PlaceCreatedEvent(row, seat);
 
         final Place place = Place.restore(placeId, 1L, List.of(event));
         assertThat(place.id()).isEqualTo(placeId);
@@ -145,8 +148,11 @@ public class PlacesTest
     @Test
     void shouldNotRestorePlaceIfEventMismatched()
     {
-        final PlaceId placeId = new PlaceId(new Row(1), new Seat(1));
-        final PlaceCreatedEvent event = new PlaceCreatedEvent();
+        final var row = new Row(1);
+        final var seat = new Seat(1);
+        final var placeId = placesRepository.nextId();
+
+        final PlaceCreatedEvent event = new PlaceCreatedEvent(row, seat);
         final PlaceSelectedEvent placeSelectedEvent1 = new PlaceSelectedEvent(orderId);
         final PlaceSelectedEvent placeSelectedEvent2 = new PlaceSelectedEvent(orderId);
 

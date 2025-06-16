@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.jupiter.api.Test;
 
+import kz.hackload.ticketing.service.provider.domain.AggregateRestoreException;
 import kz.hackload.ticketing.service.provider.domain.places.*;
 
 public class CreatePlaceUseCaseTest
@@ -13,13 +14,15 @@ public class CreatePlaceUseCaseTest
     private final CreatePlaceUseCase createPlaceUseCase = new CreatePlaceApplicationService(placesRepository);
 
     @Test
-    void shouldCreatePlace()
+    void shouldCreatePlace() throws AggregateRestoreException
     {
         // given
-        final PlaceId placeId = new PlaceId(new Row(1), new Seat(1));
+        final Row row = new Row(1);
+        final Seat seat = new Seat(1);
+        final PlaceId placeId = placesRepository.nextId();
 
         // when
-        createPlaceUseCase.create(placeId);
+        createPlaceUseCase.create(placeId, row, seat);
 
         // then
         final Place actual = placesRepository.findById(placeId).orElseThrow();

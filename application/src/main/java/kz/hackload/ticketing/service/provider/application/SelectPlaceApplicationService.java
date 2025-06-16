@@ -1,5 +1,6 @@
 package kz.hackload.ticketing.service.provider.application;
 
+import kz.hackload.ticketing.service.provider.domain.AggregateRestoreException;
 import kz.hackload.ticketing.service.provider.domain.orders.Order;
 import kz.hackload.ticketing.service.provider.domain.orders.OrderId;
 import kz.hackload.ticketing.service.provider.domain.orders.OrdersRepository;
@@ -22,7 +23,7 @@ public final class SelectPlaceApplicationService implements SelectPlaceUseCase
     }
 
     @Override
-    public void selectPlaceFor(final PlaceId placeId, final OrderId orderId) throws PlaceAlreadySelectedException, PlaceCanNotBeAddedToOrderException
+    public void selectPlaceFor(final PlaceId placeId, final OrderId orderId) throws PlaceAlreadySelectedException, PlaceCanNotBeAddedToOrderException, AggregateRestoreException
     {
         // TODO: throw place not found exception
         final Place place = placesRepository.findById(placeId).orElseThrow();

@@ -6,10 +6,12 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import org.junit.jupiter.api.Test;
 
 import kz.hackload.ticketing.service.provider.domain.InMemoryOrdersRepository;
+import kz.hackload.ticketing.service.provider.domain.InMemoryPlacesRepository;
 import kz.hackload.ticketing.service.provider.domain.places.*;
 
 public class AddPlaceToOrderServiceTest
 {
+    private final PlacesRepository placesRepository = new InMemoryPlacesRepository();
     private final OrdersRepository repository = new InMemoryOrdersRepository();
     private final AddPlaceToOrderService service = new AddPlaceToOrderService();
 
@@ -22,9 +24,9 @@ public class AddPlaceToOrderServiceTest
 
         final Row row = new Row(1);
         final Seat seat = new Seat(1);
-        final PlaceId placeId = new PlaceId(row, seat);
+        final PlaceId placeId = placesRepository.nextId();
 
-        final Place place = Place.create(placeId);
+        final Place place = Place.create(placeId, row, seat);
         place.selectFor(orderId);
 
         service.addPlace(order, place);
@@ -49,10 +51,10 @@ public class AddPlaceToOrderServiceTest
 
         final Row row = new Row(1);
         final Seat seat = new Seat(1);
-        final PlaceId placeId = new PlaceId(row, seat);
+        final PlaceId placeId = placesRepository.nextId();
+        final Place place = Place.create(placeId, row, seat);
 
         final OrderId selectedForOrder = repository.nextId();
-        final Place place = Place.create(placeId);
         place.selectFor(selectedForOrder);
 
         assertThatThrownBy(() -> service.addPlace(order, place))
@@ -72,9 +74,9 @@ public class AddPlaceToOrderServiceTest
 
         final Row row = new Row(1);
         final Seat seat = new Seat(1);
-        final PlaceId placeId = new PlaceId(row, seat);
+        final PlaceId placeId = placesRepository.nextId();
 
-        final Place place = Place.create(placeId);
+        final Place place = Place.create(placeId, row, seat);
 
         assertThatThrownBy(() -> service.addPlace(order, place))
                 .isInstanceOf(PlaceIsNotSelectedException.class)

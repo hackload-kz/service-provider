@@ -1,5 +1,6 @@
 package kz.hackload.ticketing.service.provider.application;
 
+import kz.hackload.ticketing.service.provider.domain.AggregateRestoreException;
 import kz.hackload.ticketing.service.provider.domain.orders.*;
 import kz.hackload.ticketing.service.provider.domain.places.Place;
 import kz.hackload.ticketing.service.provider.domain.places.PlaceId;
@@ -24,7 +25,8 @@ public final class AddPlaceToOrderApplicationService implements AddPlaceToOrderU
     public void addPlaceToOrder(final PlaceId placeId, final OrderId orderId) throws OrderNotStartedException,
             PlaceIsNotSelectedException,
             PlaceSelectedForAnotherOrderException,
-            PlaceAlreadyAddedException
+            PlaceAlreadyAddedException,
+            AggregateRestoreException
     {
         final Order order = ordersRepository.findById(orderId).orElseThrow();
         final Place place = placesRepository.findById(placeId).orElseThrow();

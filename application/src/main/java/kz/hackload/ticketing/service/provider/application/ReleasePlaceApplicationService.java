@@ -1,5 +1,6 @@
 package kz.hackload.ticketing.service.provider.application;
 
+import kz.hackload.ticketing.service.provider.domain.AggregateRestoreException;
 import kz.hackload.ticketing.service.provider.domain.orders.*;
 import kz.hackload.ticketing.service.provider.domain.places.*;
 
@@ -20,7 +21,7 @@ public final class ReleasePlaceApplicationService implements ReleasePlaceUseCase
     }
 
     @Override
-    public void releasePlace(final PlaceId placeId) throws OrderNotStartedException, PlaceNotAddedException
+    public void releasePlace(final PlaceId placeId) throws OrderNotStartedException, PlaceNotAddedException, AggregateRestoreException
     {
         // TODO: throw place not found exception
         final Place place = placesRepository.findById(placeId).orElseThrow();

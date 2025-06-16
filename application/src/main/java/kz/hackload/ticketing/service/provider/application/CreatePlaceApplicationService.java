@@ -1,8 +1,6 @@
 package kz.hackload.ticketing.service.provider.application;
 
-import kz.hackload.ticketing.service.provider.domain.places.Place;
-import kz.hackload.ticketing.service.provider.domain.places.PlaceId;
-import kz.hackload.ticketing.service.provider.domain.places.PlacesRepository;
+import kz.hackload.ticketing.service.provider.domain.places.*;
 
 public final class CreatePlaceApplicationService implements CreatePlaceUseCase
 {
@@ -14,9 +12,9 @@ public final class CreatePlaceApplicationService implements CreatePlaceUseCase
     }
 
     @Override
-    public void create(final PlaceId placeId)
+    public void create(final PlaceId placeId, final Row row, Seat seat)
     {
-        final Place place = Place.create(placeId);
+        final Place place = Place.create(placeId, row, seat);
         repository.save(place);
     }
 }

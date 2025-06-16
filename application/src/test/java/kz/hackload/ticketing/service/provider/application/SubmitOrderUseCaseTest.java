@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.jupiter.api.Test;
 
+import kz.hackload.ticketing.service.provider.domain.AggregateRestoreException;
 import kz.hackload.ticketing.service.provider.domain.orders.*;
 import kz.hackload.ticketing.service.provider.domain.places.*;
 
@@ -28,11 +29,14 @@ public class SubmitOrderUseCaseTest
             NoPlacesAddedException,
             PlaceIsNotSelectedException,
             PlaceSelectedForAnotherOrderException,
-            PlaceAlreadyAddedException
+            PlaceAlreadyAddedException,
+            AggregateRestoreException
     {
         // given
-        final PlaceId placeId = new PlaceId(new Row(1), new Seat(1));
-        createPlaceUseCase.create(placeId);
+        final Row row = new Row(1);
+        final Seat seat = new Seat(1);
+        final PlaceId placeId = placesRepository.nextId();
+        createPlaceUseCase.create(placeId, row, seat);
 
         final OrderId orderId = startOrderUseCase.startOrder();
         selectPlaceUseCase.selectPlaceFor(placeId, orderId);

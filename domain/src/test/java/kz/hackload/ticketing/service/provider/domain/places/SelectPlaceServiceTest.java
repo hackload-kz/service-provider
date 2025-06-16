@@ -6,10 +6,12 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import org.junit.jupiter.api.Test;
 
 import kz.hackload.ticketing.service.provider.domain.InMemoryOrdersRepository;
+import kz.hackload.ticketing.service.provider.domain.InMemoryPlacesRepository;
 import kz.hackload.ticketing.service.provider.domain.orders.*;
 
 public class SelectPlaceServiceTest
 {
+    private final PlacesRepository placesRepository = new InMemoryPlacesRepository();
     private final OrdersRepository ordersRepository = new InMemoryOrdersRepository();
     private final SelectPlaceService selectPlaceService = new SelectPlaceService();
     private final AddPlaceToOrderService addPlaceToOrderService = new AddPlaceToOrderService();
@@ -20,8 +22,10 @@ public class SelectPlaceServiceTest
         final OrderId orderId = ordersRepository.nextId();
         final Order order = Order.start(orderId);
 
-        final PlaceId placeId = new PlaceId(new Row(1), new Seat(1));
-        final Place place = Place.create(placeId);
+        final var row = new Row(1);
+        final var seat = new Seat(1);
+        final var placeId = placesRepository.nextId();
+        final var place = Place.create(placeId, row, seat);
 
         selectPlaceService.selectPlaceForOrder(place, order);
 
@@ -37,15 +41,17 @@ public class SelectPlaceServiceTest
         final OrderId orderId = ordersRepository.nextId();
         final Order order = Order.start(orderId);
 
-        final PlaceId place1Id = new PlaceId(new Row(1), new Seat(1));
-        final Place place1 = Place.create(place1Id);
+        final var row = new Row(1);
+        final var seat = new Seat(1);
+        final var placeId = placesRepository.nextId();
+        final var place1 = Place.create(placeId, row, seat);
 
         selectPlaceService.selectPlaceForOrder(place1, order);
         addPlaceToOrderService.addPlace(order, place1);
         order.submit();
 
-        final PlaceId place2Id = new PlaceId(new Row(1), new Seat(2));
-        final Place place2 = Place.create(place2Id);
+        final var place2Id = placesRepository.nextId();
+        final var place2 = Place.create(place2Id, row, seat);
 
         assertThatThrownBy(() -> selectPlaceService.selectPlaceForOrder(place2, order))
                 .isInstanceOf(PlaceCanNotBeAddedToOrderException.class)

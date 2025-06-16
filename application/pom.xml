@@ -11,8 +11,6 @@
     <properties>
         <!-- Java -->
         <java.version>24</java.version>
-
-        <!-- Encoding -->
         <maven.compiler.source>${java.version}</maven.compiler.source>
         <maven.compiler.target>${java.version}</maven.compiler.target>
 
@@ -52,13 +50,14 @@
         <dependency>
             <groupId>kz.hackload.ticketing.service.provider</groupId>
             <artifactId>domain</artifactId>
-            <version>0.0.1-SNAPSHOT</version>
+            <version>${project.version}</version>
         </dependency>
         <!-- Linters -->
         <dependency>
             <groupId>org.jspecify</groupId>
             <artifactId>jspecify</artifactId>
             <version>${jspecify.version}</version>
+            <scope>compile</scope>
         </dependency>
 
         <!-- Testing -->

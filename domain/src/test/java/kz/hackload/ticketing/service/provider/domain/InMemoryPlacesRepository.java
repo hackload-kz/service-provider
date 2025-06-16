@@ -1,9 +1,6 @@
 package kz.hackload.ticketing.service.provider.domain;
 
-import java.util.ArrayList;
-import java.util.ConcurrentModificationException;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.locks.ReentrantLock;
@@ -18,6 +15,12 @@ public class InMemoryPlacesRepository implements PlacesRepository
     private final ConcurrentMap<PlaceId, ReentrantLock> locks = new ConcurrentHashMap<>();
     private final ConcurrentMap<PlaceId, List<PlaceDomainEvent>> eventsStore = new ConcurrentHashMap<>();
     private final ConcurrentMap<PlaceId, Long> versionsStore = new ConcurrentHashMap<>();
+
+    @Override
+    public PlaceId nextId()
+    {
+        return new PlaceId(UUID.randomUUID());
+    }
 
     @Override
     public void save(final Place place)

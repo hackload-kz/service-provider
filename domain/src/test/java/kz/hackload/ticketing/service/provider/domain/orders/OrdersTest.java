@@ -8,12 +8,13 @@ import org.junit.jupiter.api.Test;
 
 import kz.hackload.ticketing.service.provider.domain.AggregateRestoreException;
 import kz.hackload.ticketing.service.provider.domain.InMemoryOrdersRepository;
+import kz.hackload.ticketing.service.provider.domain.InMemoryPlacesRepository;
 import kz.hackload.ticketing.service.provider.domain.places.PlaceId;
-import kz.hackload.ticketing.service.provider.domain.places.Row;
-import kz.hackload.ticketing.service.provider.domain.places.Seat;
+import kz.hackload.ticketing.service.provider.domain.places.PlacesRepository;
 
 public class OrdersTest
 {
+    private final PlacesRepository placesRepository = new InMemoryPlacesRepository();
     private final OrdersRepository ordersRepository = new InMemoryOrdersRepository();
 
     @Test
@@ -43,9 +44,7 @@ public class OrdersTest
         final Order order = Order.start(orderId);
         order.commitEvents();
 
-        final Row row = new Row(1);
-        final Seat seat = new Seat(1);
-        final PlaceId placeId = new PlaceId(row, seat);
+        final PlaceId placeId = placesRepository.nextId();
 
         order.addPlace(placeId);
 
@@ -66,9 +65,7 @@ public class OrdersTest
         final OrderId orderId = ordersRepository.nextId();
         final Order order = Order.start(orderId);
 
-        final Row row = new Row(1);
-        final Seat seat = new Seat(1);
-        final PlaceId placeId = new PlaceId(row, seat);
+        final PlaceId placeId = placesRepository.nextId();
 
         order.addPlace(placeId);
         order.commitEvents();
@@ -89,9 +86,7 @@ public class OrdersTest
         final OrderId orderId = ordersRepository.nextId();
         final Order order = Order.start(orderId);
 
-        final Row row = new Row(1);
-        final Seat seat = new Seat(1);
-        final PlaceId placeId = new PlaceId(row, seat);
+        final PlaceId placeId = placesRepository.nextId();
 
         order.addPlace(placeId);
         order.commitEvents();
@@ -110,9 +105,7 @@ public class OrdersTest
         final OrderId orderId = ordersRepository.nextId();
         final Order order = Order.start(orderId);
 
-        final Row row = new Row(1);
-        final Seat seat = new Seat(1);
-        final PlaceId placeId = new PlaceId(row, seat);
+        final PlaceId placeId = placesRepository.nextId();
 
         order.addPlace(placeId);
 
@@ -134,9 +127,7 @@ public class OrdersTest
         final Order order = Order.start(orderId);
         order.commitEvents();
 
-        final Row row = new Row(1);
-        final Seat seat = new Seat(1);
-        final PlaceId placeId = new PlaceId(row, seat);
+        final PlaceId placeId = placesRepository.nextId();
 
         order.addPlace(placeId);
         order.commitEvents();
@@ -157,9 +148,7 @@ public class OrdersTest
         final Order order = Order.start(orderId);
         order.commitEvents();
 
-        final Row row = new Row(1);
-        final Seat seat = new Seat(1);
-        final PlaceId placeId = new PlaceId(row, seat);
+        final PlaceId placeId = placesRepository.nextId();
 
         order.addPlace(placeId);
         order.submit();
@@ -181,9 +170,7 @@ public class OrdersTest
         final Order order = Order.start(orderId);
         order.commitEvents();
 
-        final Row row = new Row(1);
-        final Seat seat = new Seat(1);
-        final PlaceId placeId = new PlaceId(row, seat);
+        final PlaceId placeId = placesRepository.nextId();
 
         order.addPlace(placeId);
         order.submit();
@@ -231,7 +218,7 @@ public class OrdersTest
     void shouldNotRestoreOrderFromEvents()
     {
         final OrderId orderId = ordersRepository.nextId();
-        final PlaceId placeId = new PlaceId(new Row(1), new Seat(1));
+        final PlaceId placeId = placesRepository.nextId();
 
         List<OrderDomainEvent> events = List.of(new OrderStartedEvent(), new PlaceAddedToOrderEvent(placeId), new PlaceAddedToOrderEvent(placeId));
 
@@ -247,9 +234,7 @@ public class OrdersTest
         final Order order = Order.start(orderId);
         order.commitEvents();
 
-        final Row row = new Row(1);
-        final Seat seat = new Seat(1);
-        final PlaceId placeId = new PlaceId(row, seat);
+        final PlaceId placeId = placesRepository.nextId();
 
         order.addPlace(placeId);
         order.submit();
@@ -272,9 +257,7 @@ public class OrdersTest
         final Order order = Order.start(orderId);
         order.commitEvents();
 
-        final Row row = new Row(1);
-        final Seat seat = new Seat(1);
-        final PlaceId placeId = new PlaceId(row, seat);
+        final PlaceId placeId = placesRepository.nextId();
 
         order.addPlace(placeId);
 
@@ -310,7 +293,7 @@ public class OrdersTest
         final OrderId orderId = ordersRepository.nextId();
         final Order order = Order.start(orderId);
 
-        final PlaceId placeId = new PlaceId(new Row(1), new Seat(1));
+        final PlaceId placeId = placesRepository.nextId();
         order.addPlace(placeId);
         order.commitEvents();
 
@@ -329,7 +312,7 @@ public class OrdersTest
         final OrderId orderId = ordersRepository.nextId();
         final Order order = Order.start(orderId);
 
-        final PlaceId placeId = new PlaceId(new Row(1), new Seat(1));
+        final PlaceId placeId = placesRepository.nextId();
         order.addPlace(placeId);
         order.submit();
         order.commitEvents();

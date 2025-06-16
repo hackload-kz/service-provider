@@ -11,8 +11,6 @@
     <properties>
         <!-- Java -->
         <java.version>24</java.version>
-
-        <!-- Encoding -->
         <maven.compiler.source>${java.version}</maven.compiler.source>
         <maven.compiler.target>${java.version}</maven.compiler.target>
 
@@ -53,6 +51,7 @@
             <groupId>org.jspecify</groupId>
             <artifactId>jspecify</artifactId>
             <version>${jspecify.version}</version>
+            <scope>compile</scope>
         </dependency>
 
         <!-- Testing -->

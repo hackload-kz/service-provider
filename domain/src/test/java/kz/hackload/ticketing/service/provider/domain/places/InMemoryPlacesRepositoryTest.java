@@ -8,6 +8,7 @@ import java.util.Optional;
 
 import org.junit.jupiter.api.Test;
 
+import kz.hackload.ticketing.service.provider.domain.AggregateRestoreException;
 import kz.hackload.ticketing.service.provider.domain.InMemoryOrdersRepository;
 import kz.hackload.ticketing.service.provider.domain.InMemoryPlacesRepository;
 import kz.hackload.ticketing.service.provider.domain.orders.OrderId;
@@ -16,17 +17,19 @@ import kz.hackload.ticketing.service.provider.domain.orders.OrdersRepository;
 public class InMemoryPlacesRepositoryTest
 {
     private final OrdersRepository ordersRepository = new InMemoryOrdersRepository();
-    private final PlacesRepository repository = new InMemoryPlacesRepository();
+    private final PlacesRepository placesRepository = new InMemoryPlacesRepository();
 
     @Test
-    void shouldSaveCreatedPlace()
+    void shouldSaveCreatedPlace() throws AggregateRestoreException
     {
-        final PlaceId placeId = new PlaceId(new Row(1), new Seat(1));
-        final Place place = Place.create(placeId);
-        repository.save(place);
+        final var row = new Row(1);
+        final var seat = new Seat(1);
+        final var placeId = placesRepository.nextId();
+        final var place = Place.create(placeId, row, seat);
+        placesRepository.save(place);
         assertThat(place.uncommittedEvents()).isEmpty();
 
-        final Optional<Place> optionalFoundPlace = repository.findById(placeId);
+        final Optional<Place> optionalFoundPlace = placesRepository.findById(placeId);
         assertThat(optionalFoundPlace).isPresent();
 
         final Place foundPlace = optionalFoundPlace.get();
@@ -40,29 +43,32 @@ public class InMemoryPlacesRepositoryTest
     @Test
     void shouldNotSaveTwoCreatedPlacesWithSameId()
     {
-        final PlaceId placeId = new PlaceId(new Row(1), new Seat(1));
+        final var row = new Row(1);
+        final var seat = new Seat(1);
+        final var placeId = placesRepository.nextId();
+        final var place1 = Place.create(placeId, row, seat);
+        placesRepository.save(place1);
 
-        final Place place1 = Place.create(placeId);
-        repository.save(place1);
+        final Place place2 = Place.create(placeId, row, seat);
 
-        final Place place2 = Place.create(placeId);
-
-        assertThatThrownBy(() -> repository.save(place2))
+        assertThatThrownBy(() -> placesRepository.save(place2))
                 .isInstanceOf(ConcurrentModificationException.class)
                 .hasMessage("Revision mismatch exception for %s".formatted(placeId));
     }
 
     @Test
-    void shouldSaveSelectedPlace() throws PlaceAlreadySelectedException
+    void shouldSaveSelectedPlace() throws PlaceAlreadySelectedException, AggregateRestoreException
     {
         final OrderId orderId = ordersRepository.nextId();
-        final PlaceId placeId = new PlaceId(new Row(1), new Seat(1));
-        final Place place = Place.create(placeId);
+        final var row = new Row(1);
+        final var seat = new Seat(1);
+        final var placeId = placesRepository.nextId();
+        final var place = Place.create(placeId, row, seat);
         place.selectFor(orderId);
-        repository.save(place);
+        placesRepository.save(place);
         assertThat(place.uncommittedEvents()).isEmpty();
 
-        final Optional<Place> optionalFoundPlace = repository.findById(placeId);
+        final Optional<Place> optionalFoundPlace = placesRepository.findById(placeId);
         assertThat(optionalFoundPlace).isPresent();
 
         final Place foundPlace = optionalFoundPlace.get();
@@ -74,21 +80,23 @@ public class InMemoryPlacesRepositoryTest
     }
 
     @Test
-    void shouldSaveReleasedPlace() throws PlaceAlreadySelectedException, PlaceAlreadyReleasedException
+    void shouldSaveReleasedPlace() throws PlaceAlreadySelectedException, PlaceAlreadyReleasedException, AggregateRestoreException
     {
         final OrderId orderId = ordersRepository.nextId();
-        final PlaceId placeId = new PlaceId(new Row(1), new Seat(1));
-        final Place place = Place.create(placeId);
+        final var row = new Row(1);
+        final var seat = new Seat(1);
+        final var placeId = placesRepository.nextId();
+        final var place = Place.create(placeId, row, seat);
         place.selectFor(orderId);
-        repository.save(place);
+        placesRepository.save(place);
         assertThat(place.uncommittedEvents()).isEmpty();
 
-        final Place selectedPlace = repository.findById(placeId).orElseThrow();
+        final Place selectedPlace = placesRepository.findById(placeId).orElseThrow();
         selectedPlace.release();
 
-        repository.save(selectedPlace);
+        placesRepository.save(selectedPlace);
 
-        final Optional<Place> optionalFoundPlace = repository.findById(placeId);
+        final Optional<Place> optionalFoundPlace = placesRepository.findById(placeId);
         assertThat(optionalFoundPlace).isPresent();
 
         final Place foundPlace = optionalFoundPlace.get();

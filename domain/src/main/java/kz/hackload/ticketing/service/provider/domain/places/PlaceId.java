@@ -1,7 +1,9 @@
 package kz.hackload.ticketing.service.provider.domain.places;
 
+import java.util.UUID;
+
 import kz.hackload.ticketing.service.provider.domain.DomainEntityId;
 
-public record PlaceId(Row row, Seat seat) implements DomainEntityId
+public record PlaceId(UUID value) implements DomainEntityId
 {
 }

@@ -6,10 +6,12 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import org.junit.jupiter.api.Test;
 
 import kz.hackload.ticketing.service.provider.domain.InMemoryOrdersRepository;
+import kz.hackload.ticketing.service.provider.domain.InMemoryPlacesRepository;
 import kz.hackload.ticketing.service.provider.domain.places.*;
 
 public class RemovePlaceFromOrderServiceTest
 {
+    private final PlacesRepository placesRepository = new InMemoryPlacesRepository();
     private final OrdersRepository ordersRepository = new InMemoryOrdersRepository();
     private final AddPlaceToOrderService addService = new AddPlaceToOrderService();
     private final RemovePlaceFromOrderService removeService = new RemovePlaceFromOrderService();
@@ -20,10 +22,10 @@ public class RemovePlaceFromOrderServiceTest
         final OrderId orderId = ordersRepository.nextId();
         final Order order = Order.start(orderId);
 
-        final Row row = new Row(1);
-        final Seat seat = new Seat(1);
-        final PlaceId placeId = new PlaceId(row, seat);
-        final Place place = Place.create(placeId);
+        final var row = new Row(1);
+        final var seat = new Seat(1);
+        final var placeId = placesRepository.nextId();
+        final var place = Place.create(placeId, row, seat);
         place.selectFor(orderId);
         addService.addPlace(order, place);
         order.commitEvents();
@@ -45,12 +47,12 @@ public class RemovePlaceFromOrderServiceTest
         final Order order = Order.start(orderId);
         order.commitEvents();
 
-        final Row row = new Row(1);
-        final Seat seat = new Seat(1);
-        final PlaceId placeId = new PlaceId(row, seat);
+        final var row = new Row(1);
+        final var seat = new Seat(1);
+        final var placeId = placesRepository.nextId();
+        final var place = Place.create(placeId, row, seat);
 
         final OrderId anotherOrderId = ordersRepository.nextId();
-        final Place place = Place.create(placeId);
         place.selectFor(anotherOrderId);
 
         assertThatThrownBy(() -> removeService.removePlace(order, place))

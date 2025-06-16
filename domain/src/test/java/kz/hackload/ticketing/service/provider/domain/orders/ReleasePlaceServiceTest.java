@@ -5,10 +5,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 import org.junit.jupiter.api.Test;
 
 import kz.hackload.ticketing.service.provider.domain.InMemoryOrdersRepository;
+import kz.hackload.ticketing.service.provider.domain.InMemoryPlacesRepository;
 import kz.hackload.ticketing.service.provider.domain.places.*;
 
 public class ReleasePlaceServiceTest
 {
+    private final PlacesRepository placesRepository = new InMemoryPlacesRepository();
     private final OrdersRepository ordersRepository = new InMemoryOrdersRepository();
     private final AddPlaceToOrderService addPlaceToOrderService = new AddPlaceToOrderService();
     private final ReleasePlaceService releasePlaceService = new ReleasePlaceService();
@@ -21,8 +23,8 @@ public class ReleasePlaceServiceTest
 
         final var row = new Row(1);
         final var seat = new Seat(1);
-        final var placeId = new PlaceId(row, seat);
-        final var place = Place.create(placeId);
+        final var placeId = placesRepository.nextId();
+        final var place = Place.create(placeId, row, seat);
 
         place.selectFor(orderId);
         addPlaceToOrderService.addPlace(order, place);

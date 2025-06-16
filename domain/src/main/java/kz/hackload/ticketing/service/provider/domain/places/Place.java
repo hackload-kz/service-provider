@@ -11,19 +11,24 @@ import kz.hackload.ticketing.service.provider.domain.orders.OrderId;
 
 public final class Place extends AggregateRoot<PlaceId, PlaceDomainEvent>
 {
+    private final Row row;
+    private final Seat seat;
     private boolean selected;
     @Nullable
     private OrderId selectedFor;
-    private Place(final PlaceId id)
+
+    private Place(final PlaceId id, final Row row, final Seat seat)
     {
         super(id);
+        this.row = row;
+        this.seat = seat;
     }
 
-    public static Place create(final PlaceId placeId)
+    public static Place create(final PlaceId placeId, final Row row, final Seat seat)
     {
-        final Place place = new Place(placeId);
+        final Place place = new Place(placeId, row, seat);
 
-        final PlaceCreatedEvent event = new PlaceCreatedEvent();
+        final PlaceCreatedEvent event = new PlaceCreatedEvent(row, seat);
         place.apply(event);
         place.addEvent(event);
 
@@ -33,7 +38,8 @@ public final class Place extends AggregateRoot<PlaceId, PlaceDomainEvent>
     public static Place restore(final PlaceId id, final long revision, final List<PlaceDomainEvent> events)
             throws AggregateRestoreException
     {
-        final Place place = new Place(id);
+        final PlaceCreatedEvent placeCreatedEvent = (PlaceCreatedEvent) events.getFirst();
+        final Place place = new Place(id, placeCreatedEvent.row(), placeCreatedEvent.seat());
         for (final PlaceDomainEvent event : events)
         {
             try
@@ -53,12 +59,12 @@ public final class Place extends AggregateRoot<PlaceId, PlaceDomainEvent>
 
     public Row row()
     {
-        return id.row();
+        return row;
     }
 
     public Seat seat()
     {
-        return id.seat();
+        return seat;
     }
 
     public void selectFor(final OrderId orderId) throws PlaceAlreadySelectedException
