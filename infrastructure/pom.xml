@@ -18,6 +18,10 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
+        <!-- Observability -->
+        <slfj.version>2.0.17</slfj.version>
+        <logback.version>1.5.18</logback.version>
+
         <!-- Web Http -->
         <javalin.version>6.6.0</javalin.version>
         <jackson.version>2.19.0</jackson.version>
@@ -30,6 +34,7 @@
         <junit.version>5.12.1</junit.version>
         <assertj.version>3.27.3</assertj.version>
         <testcontainers.version>1.21.1</testcontainers.version>
+        <testcontainers-extensions.version>0.12.2</testcontainers-extensions.version>
 
         <!-- Linters -->
         <jspecify.version>1.0.0</jspecify.version>
@@ -91,6 +96,18 @@
             <scope>compile</scope>
         </dependency>
 
+        <!-- Observability -->
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <version>${slfj.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-classic</artifactId>
+            <version>${logback.version}</version>
+        </dependency>
+
         <!-- Web Http-->
         <dependency>
             <groupId>io.javalin</groupId>
@@ -143,6 +160,11 @@
             <groupId>org.testcontainers</groupId>
             <artifactId>postgresql</artifactId>
             <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.goodforgod</groupId>
+            <artifactId>testcontainers-extensions-postgres</artifactId>
+            <version>${testcontainers-extensions.version}</version>
         </dependency>
     </dependencies>
 </project>

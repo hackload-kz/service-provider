@@ -7,18 +7,32 @@ import javax.sql.DataSource;
 import java.util.Optional;
 import java.util.UUID;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
+import io.goodforgod.testcontainers.extensions.ContainerMode;
+import io.goodforgod.testcontainers.extensions.jdbc.ConnectionPostgreSQL;
+import io.goodforgod.testcontainers.extensions.jdbc.JdbcConnection;
+import io.goodforgod.testcontainers.extensions.jdbc.Migration;
+import io.goodforgod.testcontainers.extensions.jdbc.TestcontainersPostgreSQL;
 import kz.hackload.ticketing.service.provider.domain.AggregateRestoreException;
 import kz.hackload.ticketing.service.provider.domain.orders.Order;
 import kz.hackload.ticketing.service.provider.domain.orders.OrderId;
 import kz.hackload.ticketing.service.provider.domain.orders.OrdersRepository;
 import kz.hackload.ticketing.service.provider.domain.places.*;
 
-public class PlacesRepositoryJdbcAdapterTest
+@TestcontainersPostgreSQL(mode = ContainerMode.PER_RUN,
+        migration = @Migration(
+                engine = Migration.Engines.FLYWAY,
+                apply = Migration.Mode.PER_METHOD,
+                drop = Migration.Mode.PER_METHOD))
+public class PlacesRepositoryPostgreSqlAdapterTest
 {
+    @ConnectionPostgreSQL
+    private JdbcConnection postgresConnection;
+
     private final OrdersRepository ordersRepository = new OrdersRepository()
     {
         @Override
@@ -40,17 +54,34 @@ public class PlacesRepositoryJdbcAdapterTest
         }
     };
 
+    @BeforeEach
+    void setUp()
+    {
+        postgresConnection.execute("""
+                create table public.events
+                (
+                    aggregate_id varchar(255) not null,
+                    revision     bigint       not null,
+                    event_type   varchar(255),
+                    data         jsonb,
+                    primary key (aggregate_id, revision)
+                );
+                """);
+    }
+
     @Test
-    void shouldCreatePlace() throws AggregateRestoreException, PlaceAlreadySelectedException
+    void shouldSavePlaceAsEventsInDbThenRestore() throws AggregateRestoreException,
+            PlaceAlreadySelectedException,
+            PlaceAlreadyReleasedException
     {
         final HikariConfig hikariConfig = new HikariConfig();
-        hikariConfig.setJdbcUrl("jdbc:postgresql://localhost:5432/hackload_ticketing_sp");
-        hikariConfig.setUsername("hackload_ticketing_sp");
-        hikariConfig.setPassword("hackload_ticketing_sp");
+        hikariConfig.setJdbcUrl(postgresConnection.params().jdbcUrl());
+        hikariConfig.setUsername(postgresConnection.params().username());
+        hikariConfig.setPassword(postgresConnection.params().password());
 
         final DataSource dataSource = new HikariDataSource(hikariConfig);
 
-        final PlacesRepository placesRepository = new PlacesRepositoryJdbcAdapter(dataSource);
+        final PlacesRepository placesRepository = new PlacesRepositoryPostgreSqlAdapter(dataSource);
 
         final Row row = new Row(1);
         final Seat seat = new Seat(1);
@@ -61,7 +92,6 @@ public class PlacesRepositoryJdbcAdapterTest
         placesRepository.save(place);
 
         final Place createdPlace = placesRepository.findById(placeId).orElseThrow();
-        final Place createdPlace1 = placesRepository.findById(placeId).orElseThrow();
         assertThat(createdPlace).isEqualTo(place);
         assertThat(createdPlace.isFree()).isTrue();
         assertThat(createdPlace.selectedFor()).isEmpty();
@@ -79,7 +109,14 @@ public class PlacesRepositoryJdbcAdapterTest
         assertThat(selectedPlace.row()).isEqualTo(row);
         assertThat(selectedPlace.seat()).isEqualTo(seat);
 
-        createdPlace1.selectFor(orderId);
-        placesRepository.save(createdPlace1);
+        selectedPlace.release();
+
+        placesRepository.save(selectedPlace);
+
+        final Place releasedPlace = placesRepository.findById(placeId).orElseThrow();
+        assertThat(releasedPlace.isFree()).isTrue();
+        assertThat(releasedPlace.selectedFor()).isEmpty();
+        assertThat(releasedPlace.row()).isEqualTo(row);
+        assertThat(releasedPlace.seat()).isEqualTo(seat);
     }
 }

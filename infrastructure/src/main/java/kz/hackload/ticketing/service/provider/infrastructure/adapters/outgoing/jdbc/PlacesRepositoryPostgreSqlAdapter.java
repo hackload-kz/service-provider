@@ -14,13 +14,13 @@ import kz.hackload.ticketing.service.provider.domain.AggregateRestoreException;
 import kz.hackload.ticketing.service.provider.domain.places.*;
 import org.postgresql.util.PGobject;
 
-public final class PlacesRepositoryJdbcAdapter implements PlacesRepository
+public final class PlacesRepositoryPostgreSqlAdapter implements PlacesRepository
 {
     private final DataSource dataSource;
     // todo: replace with constructor injection
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    public PlacesRepositoryJdbcAdapter(final DataSource dataSource)
+    public PlacesRepositoryPostgreSqlAdapter(final DataSource dataSource)
     {
         this.dataSource = dataSource;
     }
@@ -123,6 +123,7 @@ public final class PlacesRepositoryJdbcAdapter implements PlacesRepository
         }
         catch (final SQLException e)
         {
+            // todo: replace with domain exception
             throw new RuntimeException(e);
         }
 
