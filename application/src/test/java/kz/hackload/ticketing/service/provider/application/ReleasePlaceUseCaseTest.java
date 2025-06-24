@@ -10,8 +10,8 @@ import kz.hackload.ticketing.service.provider.domain.places.*;
 
 public class ReleasePlaceUseCaseTest
 {
-    private final PlacesRepository placesRepository = new InMemoryPlacesRepository();
-    private final OrdersRepository ordersRepository = new InMemoryOrdersRepository();
+    private final OrdersRepository ordersRepository = new OrdersRepositoryInMemoryAdapter();
+    private final PlacesRepository placesRepository = new PlacesRepositoryInMemoryAdapter();
 
     private final SelectPlaceService selectPlaceService = new SelectPlaceService();
     private final ReleasePlaceService releasePlaceService = new ReleasePlaceService();

@@ -4,9 +4,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import javax.sql.DataSource;
 
-import java.util.Optional;
-import java.util.UUID;
-
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -19,9 +16,9 @@ import io.goodforgod.testcontainers.extensions.jdbc.JdbcConnection;
 import io.goodforgod.testcontainers.extensions.jdbc.TestcontainersPostgreSQL;
 import kz.hackload.ticketing.service.provider.domain.AggregateRestoreException;
 import kz.hackload.ticketing.service.provider.domain.orders.*;
-import kz.hackload.ticketing.service.provider.domain.places.Place;
 import kz.hackload.ticketing.service.provider.domain.places.PlaceId;
 import kz.hackload.ticketing.service.provider.domain.places.PlacesRepository;
+import kz.hackload.ticketing.service.provider.infrastructure.adapters.PlacesRepositoryInMemoryAdapter;
 
 @TestcontainersPostgreSQL(mode = ContainerMode.PER_RUN)
 public class OrdersRepositoryPostgreSqlAdapterTest
@@ -29,27 +26,8 @@ public class OrdersRepositoryPostgreSqlAdapterTest
     @ConnectionPostgreSQL
     private JdbcConnection postgresConnection;
 
+    private final PlacesRepository placesRepository = new PlacesRepositoryInMemoryAdapter();
     private OrdersRepository ordersRepository;
-    private PlacesRepository placesRepository = new PlacesRepository()
-    {
-        @Override
-        public PlaceId nextId()
-        {
-            return new PlaceId(UUID.randomUUID());
-        }
-
-        @Override
-        public void save(final Place place)
-        {
-
-        }
-
-        @Override
-        public Optional<Place> findById(final PlaceId placeId) throws AggregateRestoreException
-        {
-            return Optional.empty();
-        }
-    };
 
     @BeforeEach
     void setUp()

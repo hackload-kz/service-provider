@@ -9,7 +9,7 @@ import kz.hackload.ticketing.service.provider.domain.places.*;
 
 public class CreatePlaceUseCaseTest
 {
-    private final PlacesRepository placesRepository = new InMemoryPlacesRepository();
+    private final PlacesRepository placesRepository = new PlacesRepositoryInMemoryAdapter();
 
     private final CreatePlaceUseCase createPlaceUseCase = new CreatePlaceApplicationService(placesRepository);
 

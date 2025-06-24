@@ -5,14 +5,14 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.junit.jupiter.api.Test;
 
-import kz.hackload.ticketing.service.provider.domain.InMemoryOrdersRepository;
-import kz.hackload.ticketing.service.provider.domain.InMemoryPlacesRepository;
+import kz.hackload.ticketing.service.provider.domain.OrdersRepositoryInMemoryAdapter;
+import kz.hackload.ticketing.service.provider.domain.PlacesRepositoryInMemoryAdapter;
 import kz.hackload.ticketing.service.provider.domain.places.*;
 
 public class AddPlaceToOrderServiceTest
 {
-    private final PlacesRepository placesRepository = new InMemoryPlacesRepository();
-    private final OrdersRepository repository = new InMemoryOrdersRepository();
+    private final PlacesRepository placesRepository = new PlacesRepositoryInMemoryAdapter();
+    private final OrdersRepository repository = new OrdersRepositoryInMemoryAdapter();
     private final AddPlaceToOrderService service = new AddPlaceToOrderService();
 
     @Test

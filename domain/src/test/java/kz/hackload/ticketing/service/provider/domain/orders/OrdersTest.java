@@ -1,6 +1,7 @@
 package kz.hackload.ticketing.service.provider.domain.orders;
 
-import static org.assertj.core.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
 import java.util.Set;
@@ -8,15 +9,15 @@ import java.util.Set;
 import org.junit.jupiter.api.Test;
 
 import kz.hackload.ticketing.service.provider.domain.AggregateRestoreException;
-import kz.hackload.ticketing.service.provider.domain.InMemoryOrdersRepository;
-import kz.hackload.ticketing.service.provider.domain.InMemoryPlacesRepository;
+import kz.hackload.ticketing.service.provider.domain.OrdersRepositoryInMemoryAdapter;
+import kz.hackload.ticketing.service.provider.domain.PlacesRepositoryInMemoryAdapter;
 import kz.hackload.ticketing.service.provider.domain.places.PlaceId;
 import kz.hackload.ticketing.service.provider.domain.places.PlacesRepository;
 
 public class OrdersTest
 {
-    private final PlacesRepository placesRepository = new InMemoryPlacesRepository();
-    private final OrdersRepository ordersRepository = new InMemoryOrdersRepository();
+    private final PlacesRepository placesRepository = new PlacesRepositoryInMemoryAdapter();
+    private final OrdersRepository ordersRepository = new OrdersRepositoryInMemoryAdapter();
 
     @Test
     void shouldCreateOrder()

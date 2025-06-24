@@ -12,7 +12,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import kz.hackload.ticketing.service.provider.domain.AggregateRestoreException;
 import kz.hackload.ticketing.service.provider.domain.orders.*;
-import kz.hackload.ticketing.service.provider.domain.places.*;
 import org.postgresql.util.PGobject;
 
 public final class OrdersRepositoryPostgreSqlAdapter implements OrdersRepository

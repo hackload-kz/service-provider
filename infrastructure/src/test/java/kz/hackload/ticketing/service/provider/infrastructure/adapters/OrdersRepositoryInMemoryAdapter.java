@@ -1,4 +1,4 @@
-package kz.hackload.ticketing.service.provider.application;
+package kz.hackload.ticketing.service.provider.infrastructure.adapters;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -9,7 +9,7 @@ import kz.hackload.ticketing.service.provider.domain.orders.Order;
 import kz.hackload.ticketing.service.provider.domain.orders.OrderId;
 import kz.hackload.ticketing.service.provider.domain.orders.OrdersRepository;
 
-public class InMemoryOrdersRepository implements OrdersRepository
+public final class OrdersRepositoryInMemoryAdapter implements OrdersRepository
 {
     private final Map<OrderId, Order> orders = new HashMap<>();
 

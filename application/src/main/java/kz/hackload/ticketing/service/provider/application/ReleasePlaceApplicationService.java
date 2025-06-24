@@ -2,7 +2,9 @@ package kz.hackload.ticketing.service.provider.application;
 
 import kz.hackload.ticketing.service.provider.domain.AggregateRestoreException;
 import kz.hackload.ticketing.service.provider.domain.orders.*;
-import kz.hackload.ticketing.service.provider.domain.places.*;
+import kz.hackload.ticketing.service.provider.domain.places.Place;
+import kz.hackload.ticketing.service.provider.domain.places.PlaceId;
+import kz.hackload.ticketing.service.provider.domain.places.PlacesRepository;
 
 public final class ReleasePlaceApplicationService implements ReleasePlaceUseCase
 {

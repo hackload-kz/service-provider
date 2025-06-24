@@ -14,7 +14,7 @@ import kz.hackload.ticketing.service.provider.domain.orders.OrdersRepository;
 
 public class StartOrderUseCaseTest
 {
-    private final OrdersRepository ordersRepository = new InMemoryOrdersRepository();
+    private final OrdersRepository ordersRepository = new OrdersRepositoryInMemoryAdapter();
     private final StartOrderUseCase startOrderUseCase = new StartOrderApplicationService(ordersRepository);
 
     @Test
