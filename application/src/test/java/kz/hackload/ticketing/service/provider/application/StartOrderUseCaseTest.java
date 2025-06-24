@@ -6,6 +6,7 @@ import java.util.Optional;
 
 import org.junit.jupiter.api.Test;
 
+import kz.hackload.ticketing.service.provider.domain.AggregateRestoreException;
 import kz.hackload.ticketing.service.provider.domain.orders.Order;
 import kz.hackload.ticketing.service.provider.domain.orders.OrderId;
 import kz.hackload.ticketing.service.provider.domain.orders.OrderStatus;
@@ -17,7 +18,7 @@ public class StartOrderUseCaseTest
     private final StartOrderUseCase startOrderUseCase = new StartOrderApplicationService(ordersRepository);
 
     @Test
-    void shouldStartOrder()
+    void shouldStartOrder() throws AggregateRestoreException
     {
         final OrderId orderId = startOrderUseCase.startOrder();
 

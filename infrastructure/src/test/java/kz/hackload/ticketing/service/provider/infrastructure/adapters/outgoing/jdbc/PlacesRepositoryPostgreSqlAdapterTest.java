@@ -7,6 +7,7 @@ import javax.sql.DataSource;
 import java.util.Optional;
 import java.util.UUID;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -15,7 +16,6 @@ import com.zaxxer.hikari.HikariDataSource;
 import io.goodforgod.testcontainers.extensions.ContainerMode;
 import io.goodforgod.testcontainers.extensions.jdbc.ConnectionPostgreSQL;
 import io.goodforgod.testcontainers.extensions.jdbc.JdbcConnection;
-import io.goodforgod.testcontainers.extensions.jdbc.Migration;
 import io.goodforgod.testcontainers.extensions.jdbc.TestcontainersPostgreSQL;
 import kz.hackload.ticketing.service.provider.domain.AggregateRestoreException;
 import kz.hackload.ticketing.service.provider.domain.orders.Order;
@@ -23,11 +23,7 @@ import kz.hackload.ticketing.service.provider.domain.orders.OrderId;
 import kz.hackload.ticketing.service.provider.domain.orders.OrdersRepository;
 import kz.hackload.ticketing.service.provider.domain.places.*;
 
-@TestcontainersPostgreSQL(mode = ContainerMode.PER_RUN,
-        migration = @Migration(
-                engine = Migration.Engines.FLYWAY,
-                apply = Migration.Mode.PER_METHOD,
-                drop = Migration.Mode.PER_METHOD))
+@TestcontainersPostgreSQL(mode = ContainerMode.PER_METHOD)
 public class PlacesRepositoryPostgreSqlAdapterTest
 {
     @ConnectionPostgreSQL
@@ -67,6 +63,12 @@ public class PlacesRepositoryPostgreSqlAdapterTest
                     primary key (aggregate_id, revision)
                 );
                 """);
+    }
+
+    @AfterEach
+    void tearDown()
+    {
+        postgresConnection.execute("DROP TABLE public.events;");
     }
 
     @Test

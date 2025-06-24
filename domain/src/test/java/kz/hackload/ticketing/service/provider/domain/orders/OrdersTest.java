@@ -3,6 +3,7 @@ package kz.hackload.ticketing.service.provider.domain.orders;
 import static org.assertj.core.api.Assertions.*;
 
 import java.util.List;
+import java.util.Set;
 
 import org.junit.jupiter.api.Test;
 
@@ -284,7 +285,7 @@ public class OrdersTest
         assertThat(order.uncommittedEvents())
                 .hasSize(1)
                 .first()
-                .isEqualTo(new OrderCancelledEvent());
+                .isEqualTo(new OrderCancelledEvent(Set.of()));
     }
 
     @Test
@@ -300,8 +301,8 @@ public class OrdersTest
         order.cancel();
 
         assertThat(order.uncommittedEvents())
-                .hasSize(2)
-                .containsExactly(new PlaceRemovedFromOrderEvent(placeId), new OrderCancelledEvent());
+                .hasSize(1)
+                .containsExactly(new OrderCancelledEvent(Set.of(placeId)));
     }
 
     @Test
@@ -320,8 +321,8 @@ public class OrdersTest
         order.cancel();
 
         assertThat(order.uncommittedEvents())
-                .hasSize(2)
-                .containsExactly(new PlaceRemovedFromOrderEvent(placeId), new OrderCancelledEvent());
+                .hasSize(1)
+                .containsExactly(new OrderCancelledEvent(Set.of(placeId)));
     }
 
     @Test

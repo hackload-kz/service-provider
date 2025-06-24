@@ -110,7 +110,7 @@ public final class Order extends AggregateRoot<OrderId, OrderDomainEvent>
 
     public void cancel() throws OrderAlreadyCancelledException
     {
-        final OrderCancelledEvent orderCancelledEvent = new OrderCancelledEvent();
+        final OrderCancelledEvent orderCancelledEvent = new OrderCancelledEvent(places());
         apply(orderCancelledEvent);
         addEvent(orderCancelledEvent);
     }
@@ -199,10 +199,6 @@ public final class Order extends AggregateRoot<OrderId, OrderDomainEvent>
         }
 
         status = OrderStatus.CANCELLED;
-        for (final PlaceId place : places)
-        {
-            addEvent(new PlaceRemovedFromOrderEvent(place));
-        }
         places.clear();
     }
 }

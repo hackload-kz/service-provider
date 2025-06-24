@@ -1,5 +1,6 @@
 package kz.hackload.ticketing.service.provider.application;
 
+import kz.hackload.ticketing.service.provider.domain.AggregateRestoreException;
 import kz.hackload.ticketing.service.provider.domain.orders.Order;
 import kz.hackload.ticketing.service.provider.domain.orders.OrderId;
 import kz.hackload.ticketing.service.provider.domain.orders.OrderNotSubmittedException;
@@ -15,7 +16,7 @@ public final class ConfirmOrderApplicationService implements ConfirmOrderUseCase
     }
 
     @Override
-    public void confirm(final OrderId orderId) throws OrderNotSubmittedException
+    public void confirm(final OrderId orderId) throws OrderNotSubmittedException, AggregateRestoreException
     {
         final Order order = ordersRepository.findById(orderId).orElseThrow();
         order.confirm();

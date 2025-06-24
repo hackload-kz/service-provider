@@ -25,7 +25,8 @@ public final class ReleasePlaceApplicationService implements ReleasePlaceUseCase
     {
         // TODO: throw place not found exception
         final Place place = placesRepository.findById(placeId).orElseThrow();
-        final Order order = place.selectedFor().flatMap(ordersRepository::findById).orElseThrow();
+        final OrderId orderId = place.selectedFor().orElseThrow();
+        final Order order = ordersRepository.findById(orderId).orElseThrow();
 
         releasePlaceService.release(order, place);
 
