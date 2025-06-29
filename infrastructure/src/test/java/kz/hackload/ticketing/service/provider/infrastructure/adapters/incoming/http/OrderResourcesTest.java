@@ -27,6 +27,7 @@ public class OrderResourcesTest
     private final OrdersRepository ordersRepository = new OrdersRepositoryInMemoryAdapter();
     private final PlacesRepository placesRepository = new PlacesRepositoryInMemoryAdapter();
 
+    private final CreatePlaceUseCase createPlaceUseCase = new CreatePlaceApplicationService(placesRepository);
     private final SelectPlaceService selectPlaceService = new SelectPlaceService();
     private final AddPlaceToOrderService addPlaceToOrderService = new AddPlaceToOrderService();
 
@@ -34,6 +35,7 @@ public class OrderResourcesTest
     private final SelectPlaceUseCase selectPlaceUseCase = new SelectPlaceApplicationService(selectPlaceService, placesRepository, ordersRepository);
     private final AddPlaceToOrderUseCase addPlaceToOrderUseCase = new AddPlaceToOrderApplicationService(ordersRepository, placesRepository, addPlaceToOrderService);
     private final SubmitOrderUseCase submitOrderUseCase = new SubmitOrderApplicationService(ordersRepository);
+    private final ConfirmOrderUseCase confirmOrderUseCase = new ConfirmOrderApplicationService(ordersRepository);
 
     private OrderResourcesJavalinHttpAdapter adapter;
     private Javalin server;
@@ -42,7 +44,7 @@ public class OrderResourcesTest
     void setUp()
     {
         server = Javalin.create();
-        adapter = new OrderResourcesJavalinHttpAdapter(server, startOrderUseCase, submitOrderUseCase);
+        adapter = new OrderResourcesJavalinHttpAdapter(server, startOrderUseCase, submitOrderUseCase, confirmOrderUseCase);
     }
 
     @AfterEach
@@ -82,26 +84,52 @@ public class OrderResourcesTest
             PlaceSelectedForAnotherOrderException,
             PlaceAlreadyAddedException
     {
-        final PlaceId placeId = placesRepository.nextId();
-        final Place place = Place.create(placeId, new Row(1), new Seat(2));
-        placesRepository.save(place);
-
-        final OrderId orderId = ordersRepository.nextId();
-        final Order order = Order.start(orderId);
-        ordersRepository.save(order);
+        final PlaceId placeId = createPlaceUseCase.create(new Row(1), new Seat(2));
+        final OrderId orderId = startOrderUseCase.startOrder();
 
         selectPlaceUseCase.selectPlaceFor(placeId, orderId);
         addPlaceToOrderUseCase.addPlaceToOrder(placeId, orderId);
 
         JavalinTest.test(server, (s, c) ->
         {
-            try (final Response response = c.put("/api/partners/v1/orders/" + orderId.value() + "/submit"))
+            try (final Response response = c.patch("/api/partners/v1/orders/" + orderId.value() + "/submit"))
             {
                 assertThat(response.isSuccessful()).isTrue();
 
                 final Order actual = ordersRepository.findById(orderId).orElseThrow();
 
                 assertThat(actual.status()).isEqualTo(OrderStatus.SUBMITTED);
+                assertThat(actual.places()).hasSize(1).first().isEqualTo(placeId);
+                assertThat(actual.contains(placeId)).isTrue();
+            }
+        });
+    }
+
+    @Test
+    void orderConfirmed() throws OrderNotStartedException,
+            NoPlacesAddedException,
+            AggregateRestoreException,
+            PlaceIsNotSelectedException,
+            PlaceSelectedForAnotherOrderException,
+            PlaceAlreadyAddedException,
+            PlaceCanNotBeAddedToOrderException,
+            PlaceAlreadySelectedException
+    {
+        final PlaceId placeId = createPlaceUseCase.create(new Row(1), new Seat(2));
+        final OrderId orderId = startOrderUseCase.startOrder();
+        selectPlaceUseCase.selectPlaceFor(placeId, orderId);
+        addPlaceToOrderUseCase.addPlaceToOrder(placeId, orderId);
+        submitOrderUseCase.submit(orderId);
+
+        JavalinTest.test(server, (s, c) ->
+        {
+            try (final Response response = c.patch("/api/partners/v1/orders/" + orderId.value() + "/confirm"))
+            {
+                assertThat(response.isSuccessful()).isTrue();
+
+                final Order actual = ordersRepository.findById(orderId).orElseThrow();
+
+                assertThat(actual.status()).isEqualTo(OrderStatus.CONFIRMED);
                 assertThat(actual.places()).hasSize(1).first().isEqualTo(placeId);
                 assertThat(actual.contains(placeId)).isTrue();
             }

@@ -6,5 +6,5 @@ import kz.hackload.ticketing.service.provider.domain.places.Seat;
 
 public interface CreatePlaceUseCase
 {
-    void create(final PlaceId placeId, final Row row, Seat seat);
+    PlaceId create(final Row row, Seat seat);
 }

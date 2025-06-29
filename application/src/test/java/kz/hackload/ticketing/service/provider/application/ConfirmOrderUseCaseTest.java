@@ -37,8 +37,7 @@ public class ConfirmOrderUseCaseTest
         // given
         final Row row = new Row(1);
         final Seat seat = new Seat(1);
-        final PlaceId placeId = placesRepository.nextId();
-        createPlaceUseCase.create(placeId, row, seat);
+        final PlaceId placeId = createPlaceUseCase.create(row, seat);
 
         final OrderId orderId = startOrderUseCase.startOrder();
         selectPlaceUseCase.selectPlaceFor(placeId, orderId);

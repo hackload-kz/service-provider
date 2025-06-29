@@ -19,10 +19,9 @@ public class CreatePlaceUseCaseTest
         // given
         final Row row = new Row(1);
         final Seat seat = new Seat(1);
-        final PlaceId placeId = placesRepository.nextId();
 
         // when
-        createPlaceUseCase.create(placeId, row, seat);
+        final PlaceId placeId = createPlaceUseCase.create(row, seat);
 
         // then
         final Place actual = placesRepository.findById(placeId).orElseThrow();

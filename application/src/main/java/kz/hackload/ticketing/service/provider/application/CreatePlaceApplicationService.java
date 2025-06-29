@@ -12,9 +12,11 @@ public final class CreatePlaceApplicationService implements CreatePlaceUseCase
     }
 
     @Override
-    public void create(final PlaceId placeId, final Row row, Seat seat)
+    public PlaceId create(final Row row, Seat seat)
     {
+        final PlaceId placeId = repository.nextId();
         final Place place = Place.create(placeId, row, seat);
         repository.save(place);
+        return placeId;
     }
 }
