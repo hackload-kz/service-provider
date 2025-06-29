@@ -36,6 +36,7 @@ public class OrderResourcesTest
     private final AddPlaceToOrderUseCase addPlaceToOrderUseCase = new AddPlaceToOrderApplicationService(ordersRepository, placesRepository, addPlaceToOrderService);
     private final SubmitOrderUseCase submitOrderUseCase = new SubmitOrderApplicationService(ordersRepository);
     private final ConfirmOrderUseCase confirmOrderUseCase = new ConfirmOrderApplicationService(ordersRepository);
+    private final CancelOrderUseCase cancelOrderUseCase = new CancelOrderApplicationService(ordersRepository);
 
     private OrderResourcesJavalinHttpAdapter adapter;
     private Javalin server;
@@ -44,7 +45,7 @@ public class OrderResourcesTest
     void setUp()
     {
         server = Javalin.create();
-        adapter = new OrderResourcesJavalinHttpAdapter(server, startOrderUseCase, submitOrderUseCase, confirmOrderUseCase);
+        adapter = new OrderResourcesJavalinHttpAdapter(server, startOrderUseCase, submitOrderUseCase, confirmOrderUseCase, cancelOrderUseCase);
     }
 
     @AfterEach
@@ -132,6 +133,37 @@ public class OrderResourcesTest
                 assertThat(actual.status()).isEqualTo(OrderStatus.CONFIRMED);
                 assertThat(actual.places()).hasSize(1).first().isEqualTo(placeId);
                 assertThat(actual.contains(placeId)).isTrue();
+            }
+        });
+    }
+
+    @Test
+    void orderCancelled() throws PlaceCanNotBeAddedToOrderException,
+            PlaceAlreadySelectedException,
+            AggregateRestoreException,
+            OrderNotStartedException,
+            PlaceIsNotSelectedException,
+            PlaceSelectedForAnotherOrderException,
+            PlaceAlreadyAddedException,
+            NoPlacesAddedException
+    {
+        final PlaceId placeId = createPlaceUseCase.create(new Row(1), new Seat(2));
+        final OrderId orderId = startOrderUseCase.startOrder();
+        selectPlaceUseCase.selectPlaceFor(placeId, orderId);
+        addPlaceToOrderUseCase.addPlaceToOrder(placeId, orderId);
+        submitOrderUseCase.submit(orderId);
+
+        JavalinTest.test(server, (s, c) ->
+        {
+            try (final Response response = c.patch("/api/partners/v1/orders/" + orderId.value() + "/cancel"))
+            {
+                assertThat(response.isSuccessful()).isTrue();
+
+                final Order actual = ordersRepository.findById(orderId).orElseThrow();
+
+                assertThat(actual.status()).isEqualTo(OrderStatus.CANCELLED);
+                assertThat(actual.places()).isEmpty();
+                assertThat(actual.contains(placeId)).isFalse();
             }
         });
     }

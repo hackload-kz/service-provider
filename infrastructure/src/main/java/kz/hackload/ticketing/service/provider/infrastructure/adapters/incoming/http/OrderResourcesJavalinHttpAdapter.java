@@ -5,33 +5,35 @@ import java.util.UUID;
 import io.javalin.Javalin;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
+import kz.hackload.ticketing.service.provider.application.CancelOrderUseCase;
 import kz.hackload.ticketing.service.provider.application.ConfirmOrderUseCase;
 import kz.hackload.ticketing.service.provider.application.StartOrderUseCase;
 import kz.hackload.ticketing.service.provider.application.SubmitOrderUseCase;
 import kz.hackload.ticketing.service.provider.domain.AggregateRestoreException;
-import kz.hackload.ticketing.service.provider.domain.orders.NoPlacesAddedException;
-import kz.hackload.ticketing.service.provider.domain.orders.OrderId;
-import kz.hackload.ticketing.service.provider.domain.orders.OrderNotStartedException;
-import kz.hackload.ticketing.service.provider.domain.orders.OrderNotSubmittedException;
+import kz.hackload.ticketing.service.provider.domain.orders.*;
 
 public class OrderResourcesJavalinHttpAdapter
 {
     private final StartOrderUseCase startOrderUseCase;
     private final SubmitOrderUseCase submitOrderUseCase;
     private final ConfirmOrderUseCase confirmOrderUseCase;
+    private final CancelOrderUseCase cancelOrderUseCase;
 
     public OrderResourcesJavalinHttpAdapter(final Javalin server,
                                             final StartOrderUseCase startOrderUseCase,
                                             final SubmitOrderUseCase submitOrderUseCase,
-                                            final ConfirmOrderUseCase confirmOrderUseCase)
+                                            final ConfirmOrderUseCase confirmOrderUseCase,
+                                            final CancelOrderUseCase cancelOrderUseCase)
     {
         this.startOrderUseCase = startOrderUseCase;
         this.submitOrderUseCase = submitOrderUseCase;
         this.confirmOrderUseCase = confirmOrderUseCase;
+        this.cancelOrderUseCase = cancelOrderUseCase;
 
         server.post("/api/partners/v1/orders", this::startOrder);
         server.patch("/api/partners/v1/orders/{id}/submit", this::submitOrder);
         server.patch("/api/partners/v1/orders/{id}/confirm", this::confirmOrder);
+        server.patch("/api/partners/v1/orders/{id}/cancel", this::cancelOrder);
     }
 
     private void startOrder(final Context context)
@@ -74,6 +76,25 @@ public class OrderResourcesJavalinHttpAdapter
             context.status(HttpStatus.OK);
         }
         catch (final OrderNotSubmittedException e)
+        {
+            context.status(HttpStatus.CONFLICT);
+        }
+        catch (final AggregateRestoreException e)
+        {
+            context.status(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    private void cancelOrder(final Context context)
+    {
+        final OrderId orderId = new OrderId(UUID.fromString(context.pathParam("id")));
+
+        try
+        {
+            cancelOrderUseCase.cancel(orderId);
+            context.status(HttpStatus.OK);
+        }
+        catch (final OrderAlreadyCancelledException e)
         {
             context.status(HttpStatus.CONFLICT);
         }
