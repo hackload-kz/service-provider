@@ -16,7 +16,7 @@ public class ReleasePlaceServiceTest
     private final ReleasePlaceService releasePlaceService = new ReleasePlaceService();
 
     @Test
-    void shouldReleasePlace() throws PlaceAlreadySelectedException, PlaceIsNotSelectedException, PlaceSelectedForAnotherOrderException, PlaceAlreadyAddedException, PlaceNotAddedException, PlaceAlreadyReleasedException, OrderStillContainsPlaceException, OrderNotStartedException
+    void shouldReleasePlace() throws PlaceAlreadySelectedException, PlaceIsNotSelectedException, PlaceSelectedForAnotherOrderException, PlaceAlreadyAddedException, PlaceNotAddedException, OrderNotStartedException
     {
         final OrderId orderId = ordersRepository.nextId();
         final Order order = Order.start(orderId);
