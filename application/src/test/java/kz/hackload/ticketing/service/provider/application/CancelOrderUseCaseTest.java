@@ -16,12 +16,14 @@ public class CancelOrderUseCaseTest
     private final SelectPlaceService selectPlaceService = new SelectPlaceService();
     private final AddPlaceToOrderService addPlaceToOrderService = new AddPlaceToOrderService();
 
-    private final CreatePlaceUseCase createPlaceUseCase = new CreatePlaceApplicationService(placesRepository);
-    private final StartOrderUseCase startOrderUseCase = new StartOrderApplicationService(ordersRepository);
-    private final SelectPlaceUseCase selectPlaceUseCase = new SelectPlaceApplicationService(selectPlaceService, placesRepository, ordersRepository);
-    private final SubmitOrderUseCase submitOrderUseCase = new SubmitOrderApplicationService(ordersRepository);
-    private final AddPlaceToOrderUseCase addPlaceToOrderUseCase = new AddPlaceToOrderApplicationService(ordersRepository, placesRepository, addPlaceToOrderService);
-    private final CancelOrderUseCase cancelOrderUseCase = new CancelOrderApplicationService(ordersRepository);
+    private final TransactionManager transactionManager = new NoopTransactionManager();
+
+    private final CreatePlaceUseCase createPlaceUseCase = new CreatePlaceApplicationService(transactionManager, placesRepository);
+    private final StartOrderUseCase startOrderUseCase = new StartOrderApplicationService(transactionManager, ordersRepository);
+    private final SelectPlaceUseCase selectPlaceUseCase = new SelectPlaceApplicationService(selectPlaceService, transactionManager, placesRepository, ordersRepository);
+    private final SubmitOrderUseCase submitOrderUseCase = new SubmitOrderApplicationService(transactionManager, ordersRepository);
+    private final AddPlaceToOrderUseCase addPlaceToOrderUseCase = new AddPlaceToOrderApplicationService(transactionManager, ordersRepository, placesRepository, addPlaceToOrderService);
+    private final CancelOrderUseCase cancelOrderUseCase = new CancelOrderApplicationService(transactionManager, ordersRepository);
 
     @Test
     void orderCancelled() throws PlaceCanNotBeAddedToOrderException,

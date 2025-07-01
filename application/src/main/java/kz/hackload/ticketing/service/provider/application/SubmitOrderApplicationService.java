@@ -5,19 +5,23 @@ import kz.hackload.ticketing.service.provider.domain.orders.*;
 
 public final class SubmitOrderApplicationService implements SubmitOrderUseCase
 {
+    private final TransactionManager transactionManager;
     private final OrdersRepository ordersRepository;
 
-    public SubmitOrderApplicationService(final OrdersRepository ordersRepository)
+    public SubmitOrderApplicationService(final TransactionManager transactionManager,
+                                         final OrdersRepository ordersRepository)
     {
+        this.transactionManager = transactionManager;
         this.ordersRepository = ordersRepository;
     }
 
     @Override
     public void submit(final OrderId orderId) throws OrderNotStartedException, NoPlacesAddedException, AggregateRestoreException
     {
-        final Order order = ordersRepository.findById(orderId).orElseThrow();
+        final Order order = transactionManager.executeInTransaction(() -> ordersRepository.findById(orderId).orElseThrow());
+
         order.submit();
 
-        ordersRepository.save(order);
+        transactionManager.executeInTransaction(() -> ordersRepository.save(order));
     }
 }

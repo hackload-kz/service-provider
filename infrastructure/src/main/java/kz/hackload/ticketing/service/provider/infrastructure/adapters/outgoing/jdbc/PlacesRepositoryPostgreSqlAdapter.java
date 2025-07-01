@@ -16,13 +16,13 @@ import org.postgresql.util.PGobject;
 
 public final class PlacesRepositoryPostgreSqlAdapter implements PlacesRepository
 {
-    private final DataSource dataSource;
+    private final JdbcTransactionManager transactionManager;
     // todo: replace with constructor injection
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    public PlacesRepositoryPostgreSqlAdapter(final DataSource dataSource)
+    public PlacesRepositoryPostgreSqlAdapter(final JdbcTransactionManager transactionManager)
     {
-        this.dataSource = dataSource;
+        this.transactionManager = transactionManager;
     }
 
     @Override
@@ -53,29 +53,25 @@ public final class PlacesRepositoryPostgreSqlAdapter implements PlacesRepository
 
         // todo: rename db column to revision
         long currentRevision = place.revision();
-
-        try (final var connection = dataSource.getConnection())
+        final Connection connection = transactionManager.currentConnection();
+        try (final var statement = connection.prepareStatement("INSERT INTO events(aggregate_id, event_type, revision, data) VALUES (?, ?, ?, ?)"))
         {
-            connection.setAutoCommit(false);
-            try (final var statement = connection.prepareStatement("INSERT INTO events(aggregate_id, event_type, revision, data) VALUES (?, ?, ?, ?)"))
+            for (final var entry : uncommittedEventToJsonMap.entrySet())
             {
-                for (final var entry : uncommittedEventToJsonMap.entrySet())
-                {
-                    statement.setString(1, id);
-                    statement.setString(2, entry.getKey().type());
-                    statement.setLong(3, currentRevision++);
+                statement.setString(1, id);
+                statement.setString(2, entry.getKey().type());
+                statement.setLong(3, currentRevision++);
 
-                    final PGobject pGobject = new PGobject();
-                    pGobject.setType("jsonb");
-                    pGobject.setValue(entry.getValue());
+                final PGobject pGobject = new PGobject();
+                pGobject.setType("jsonb");
+                pGobject.setValue(entry.getValue());
 
-                    statement.setObject(4, pGobject);
-                    statement.addBatch();
-                }
-
-                statement.execute();
-                connection.commit();
+                statement.setObject(4, pGobject);
+                statement.addBatch();
             }
+
+            statement.execute();
+            connection.commit();
         }
         catch (final SQLException e)
         {
@@ -91,33 +87,30 @@ public final class PlacesRepositoryPostgreSqlAdapter implements PlacesRepository
 
         final ArrayList<ResultSetRow> rsRows = new ArrayList<>();
 
-        try (Connection connection = dataSource.getConnection())
+        final Connection connection = transactionManager.currentConnection();
+        try (final PreparedStatement statement = connection.prepareStatement("SELECT * FROM events WHERE aggregate_id = ?"))
         {
-            connection.setReadOnly(true);
-            try (final PreparedStatement statement = connection.prepareStatement("SELECT * FROM events WHERE aggregate_id = ?"))
+            statement.setString(1, placeId.value().toString());
+            try (final ResultSet rs = statement.executeQuery())
             {
-                statement.setString(1, placeId.value().toString());
-                try (final ResultSet rs = statement.executeQuery())
+                if (rs.next())
                 {
-                    if (rs.next())
+                    do
                     {
-                        do
-                        {
-                            final String id = rs.getString("aggregate_id");
-                            final String eventType = rs.getString("event_type");
-                            final long revision = rs.getLong("revision");
+                        final String id = rs.getString("aggregate_id");
+                        final String eventType = rs.getString("event_type");
+                        final long revision = rs.getLong("revision");
 
-                            final PGobject pGobject = (PGobject) rs.getObject("data");
-                            final String data = pGobject.getValue();
+                        final PGobject pGobject = (PGobject) rs.getObject("data");
+                        final String data = pGobject.getValue();
 
-                            rsRows.add(new ResultSetRow(id, eventType, revision, data));
-                        }
-                        while (rs.next());
+                        rsRows.add(new ResultSetRow(id, eventType, revision, data));
                     }
-                    else
-                    {
-                        return Optional.empty();
-                    }
+                    while (rs.next());
+                }
+                else
+                {
+                    return Optional.empty();
                 }
             }
         }

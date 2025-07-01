@@ -4,10 +4,12 @@ import kz.hackload.ticketing.service.provider.domain.places.*;
 
 public final class CreatePlaceApplicationService implements CreatePlaceUseCase
 {
+    private final TransactionManager transactionManager;
     private final PlacesRepository repository;
 
-    public CreatePlaceApplicationService(final PlacesRepository repository)
+    public CreatePlaceApplicationService(final TransactionManager transactionManager, final PlacesRepository repository)
     {
+        this.transactionManager = transactionManager;
         this.repository = repository;
     }
 
@@ -16,7 +18,9 @@ public final class CreatePlaceApplicationService implements CreatePlaceUseCase
     {
         final PlaceId placeId = repository.nextId();
         final Place place = Place.create(placeId, row, seat);
-        repository.save(place);
+
+        transactionManager.executeInTransaction(() -> repository.save(place));
+
         return placeId;
     }
 }

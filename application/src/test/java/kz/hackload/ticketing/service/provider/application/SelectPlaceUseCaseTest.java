@@ -16,9 +16,11 @@ public class SelectPlaceUseCaseTest
 
     private final SelectPlaceService selectPlaceService = new SelectPlaceService();
 
-    private final CreatePlaceUseCase createPlaceUseCase = new CreatePlaceApplicationService(placesRepository);
-    private final SelectPlaceUseCase selectPlaceUseCase = new SelectPlaceApplicationService(selectPlaceService, placesRepository, ordersRepository);
-    private final StartOrderUseCase startOrderUseCase = new StartOrderApplicationService(ordersRepository);
+    private final TransactionManager transactionManager = new NoopTransactionManager();
+
+    private final CreatePlaceUseCase createPlaceUseCase = new CreatePlaceApplicationService(transactionManager, placesRepository);
+    private final SelectPlaceUseCase selectPlaceUseCase = new SelectPlaceApplicationService(selectPlaceService, transactionManager, placesRepository, ordersRepository);
+    private final StartOrderUseCase startOrderUseCase = new StartOrderApplicationService(transactionManager, ordersRepository);
 
     @Test
     void shouldSelectPlace() throws PlaceAlreadySelectedException, PlaceCanNotBeAddedToOrderException, AggregateRestoreException

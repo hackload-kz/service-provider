@@ -6,10 +6,12 @@ import kz.hackload.ticketing.service.provider.domain.orders.OrdersRepository;
 
 public final class StartOrderApplicationService implements StartOrderUseCase
 {
+    private final TransactionManager transactionManager;
     private final OrdersRepository ordersRepository;
 
-    public StartOrderApplicationService(final OrdersRepository ordersRepository)
+    public StartOrderApplicationService(final TransactionManager transactionManager, final OrdersRepository ordersRepository)
     {
+        this.transactionManager = transactionManager;
         this.ordersRepository = ordersRepository;
     }
 
@@ -19,7 +21,7 @@ public final class StartOrderApplicationService implements StartOrderUseCase
         final OrderId orderId = ordersRepository.nextId();
 
         final Order order = Order.start(orderId);
-        ordersRepository.save(order);
+        transactionManager.executeInTransaction(() -> ordersRepository.save(order));
 
         return orderId;
     }

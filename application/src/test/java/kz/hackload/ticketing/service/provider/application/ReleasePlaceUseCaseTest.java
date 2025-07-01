@@ -10,6 +10,8 @@ import kz.hackload.ticketing.service.provider.domain.places.*;
 
 public class ReleasePlaceUseCaseTest
 {
+    private final TransactionManager transactionManager = new NoopTransactionManager();
+
     private final OrdersRepository ordersRepository = new OrdersRepositoryInMemoryAdapter();
     private final PlacesRepository placesRepository = new PlacesRepositoryInMemoryAdapter();
 
@@ -17,11 +19,11 @@ public class ReleasePlaceUseCaseTest
     private final ReleasePlaceService releasePlaceService = new ReleasePlaceService();
     private final AddPlaceToOrderService addPlaceToOrderService = new AddPlaceToOrderService();
 
-    private final CreatePlaceUseCase createPlaceUseCase = new CreatePlaceApplicationService(placesRepository);
-    private final StartOrderUseCase startOrderUseCase = new StartOrderApplicationService(ordersRepository);
-    private final SelectPlaceUseCase selectPlaceUseCase = new SelectPlaceApplicationService(selectPlaceService, placesRepository, ordersRepository);
-    private final AddPlaceToOrderUseCase addPlaceToOrderUseCase = new AddPlaceToOrderApplicationService(ordersRepository, placesRepository, addPlaceToOrderService);
-    private final ReleasePlaceUseCase releasePlaceUseCase = new ReleasePlaceApplicationService(releasePlaceService, placesRepository, ordersRepository);
+    private final CreatePlaceUseCase createPlaceUseCase = new CreatePlaceApplicationService(transactionManager, placesRepository);
+    private final StartOrderUseCase startOrderUseCase = new StartOrderApplicationService(transactionManager, ordersRepository);
+    private final SelectPlaceUseCase selectPlaceUseCase = new SelectPlaceApplicationService(selectPlaceService, transactionManager, placesRepository, ordersRepository);
+    private final AddPlaceToOrderUseCase addPlaceToOrderUseCase = new AddPlaceToOrderApplicationService(transactionManager, ordersRepository, placesRepository, addPlaceToOrderService);
+    private final ReleasePlaceUseCase releasePlaceUseCase = new ReleasePlaceApplicationService(releasePlaceService, transactionManager, placesRepository, ordersRepository);
 
     @Test
     void shouldReleasePlace() throws PlaceCanNotBeAddedToOrderException,

@@ -15,6 +15,7 @@ import kz.hackload.ticketing.service.provider.application.*;
 import kz.hackload.ticketing.service.provider.domain.AggregateRestoreException;
 import kz.hackload.ticketing.service.provider.domain.orders.*;
 import kz.hackload.ticketing.service.provider.domain.places.*;
+import kz.hackload.ticketing.service.provider.infrastructure.adapters.NoopTransactionManager;
 import kz.hackload.ticketing.service.provider.infrastructure.adapters.OrdersRepositoryInMemoryAdapter;
 import kz.hackload.ticketing.service.provider.infrastructure.adapters.PlacesRepositoryInMemoryAdapter;
 import okhttp3.Response;
@@ -24,19 +25,21 @@ public class OrderResourcesTest
 {
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
+    private final TransactionManager transactionManager = new NoopTransactionManager();
+
     private final OrdersRepository ordersRepository = new OrdersRepositoryInMemoryAdapter();
     private final PlacesRepository placesRepository = new PlacesRepositoryInMemoryAdapter();
 
-    private final CreatePlaceUseCase createPlaceUseCase = new CreatePlaceApplicationService(placesRepository);
+    private final CreatePlaceUseCase createPlaceUseCase = new CreatePlaceApplicationService(transactionManager, placesRepository);
     private final SelectPlaceService selectPlaceService = new SelectPlaceService();
     private final AddPlaceToOrderService addPlaceToOrderService = new AddPlaceToOrderService();
 
-    private final StartOrderUseCase startOrderUseCase = new StartOrderApplicationService(ordersRepository);
-    private final SelectPlaceUseCase selectPlaceUseCase = new SelectPlaceApplicationService(selectPlaceService, placesRepository, ordersRepository);
-    private final AddPlaceToOrderUseCase addPlaceToOrderUseCase = new AddPlaceToOrderApplicationService(ordersRepository, placesRepository, addPlaceToOrderService);
-    private final SubmitOrderUseCase submitOrderUseCase = new SubmitOrderApplicationService(ordersRepository);
-    private final ConfirmOrderUseCase confirmOrderUseCase = new ConfirmOrderApplicationService(ordersRepository);
-    private final CancelOrderUseCase cancelOrderUseCase = new CancelOrderApplicationService(ordersRepository);
+    private final StartOrderUseCase startOrderUseCase = new StartOrderApplicationService(transactionManager, ordersRepository);
+    private final SelectPlaceUseCase selectPlaceUseCase = new SelectPlaceApplicationService(selectPlaceService, transactionManager, placesRepository, ordersRepository);
+    private final AddPlaceToOrderUseCase addPlaceToOrderUseCase = new AddPlaceToOrderApplicationService(transactionManager, ordersRepository, placesRepository, addPlaceToOrderService);
+    private final SubmitOrderUseCase submitOrderUseCase = new SubmitOrderApplicationService(transactionManager, ordersRepository);
+    private final ConfirmOrderUseCase confirmOrderUseCase = new ConfirmOrderApplicationService(transactionManager, ordersRepository);
+    private final CancelOrderUseCase cancelOrderUseCase = new CancelOrderApplicationService(transactionManager, ordersRepository);
 
     private OrderResourcesJavalinHttpAdapter adapter;
     private Javalin server;

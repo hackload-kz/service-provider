@@ -15,7 +15,8 @@ import kz.hackload.ticketing.service.provider.domain.orders.OrdersRepository;
 public class StartOrderUseCaseTest
 {
     private final OrdersRepository ordersRepository = new OrdersRepositoryInMemoryAdapter();
-    private final StartOrderUseCase startOrderUseCase = new StartOrderApplicationService(ordersRepository);
+    private final TransactionManager transactionManager = new NoopTransactionManager();
+    private final StartOrderUseCase startOrderUseCase = new StartOrderApplicationService(transactionManager, ordersRepository);
 
     @Test
     void shouldStartOrder() throws AggregateRestoreException

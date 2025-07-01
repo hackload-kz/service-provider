@@ -25,8 +25,8 @@ public class OrdersRepositoryPostgreSqlAdapterTest
 {
     @ConnectionPostgreSQL
     private JdbcConnection postgresConnection;
-
     private final PlacesRepository placesRepository = new PlacesRepositoryInMemoryAdapter();
+    private JdbcTransactionManager transactionManager;
     private OrdersRepository ordersRepository;
 
     @BeforeEach
@@ -50,7 +50,8 @@ public class OrdersRepositoryPostgreSqlAdapterTest
 
         final DataSource dataSource = new HikariDataSource(hikariConfig);
 
-        ordersRepository = new OrdersRepositoryPostgreSqlAdapter(dataSource);
+        transactionManager = new JdbcTransactionManager(dataSource);
+        ordersRepository = new OrdersRepositoryPostgreSqlAdapter(transactionManager);
     }
 
     @AfterEach
@@ -65,9 +66,9 @@ public class OrdersRepositoryPostgreSqlAdapterTest
         final OrderId orderId = ordersRepository.nextId();
 
         final Order order = Order.start(orderId);
-        ordersRepository.save(order);
+        transactionManager.executeInTransaction(() -> ordersRepository.save(order));
 
-        final Order foundOrder = ordersRepository.findById(orderId).orElseThrow();
+        final Order foundOrder = transactionManager.executeInTransaction(() -> ordersRepository.findById(orderId).orElseThrow());
         assertThat(foundOrder.status()).isEqualTo(OrderStatus.STARTED);
         assertThat(foundOrder.places()).isEmpty();
         assertThat(foundOrder.canAddPlace()).isTrue();
@@ -82,15 +83,15 @@ public class OrdersRepositoryPostgreSqlAdapterTest
         final OrderId orderId = ordersRepository.nextId();
 
         final Order order = Order.start(orderId);
-        ordersRepository.save(order);
+        transactionManager.executeInTransaction(() -> ordersRepository.save(order));
 
-        final Order startedOrder = ordersRepository.findById(orderId).orElseThrow();
+        final Order startedOrder = transactionManager.executeInTransaction(() -> ordersRepository.findById(orderId).orElseThrow());
         final PlaceId placeId = placesRepository.nextId();
 
         startedOrder.addPlace(placeId);
-        ordersRepository.save(startedOrder);
+        transactionManager.executeInTransaction(() -> ordersRepository.save(startedOrder));
 
-        final Order orderWithPlace = ordersRepository.findById(orderId).orElseThrow();
+        final Order orderWithPlace = transactionManager.executeInTransaction(() -> ordersRepository.findById(orderId).orElseThrow());
         assertThat(orderWithPlace.status()).isEqualTo(OrderStatus.STARTED);
         assertThat(orderWithPlace.places()).hasSize(1).first().isEqualTo(placeId);
         assertThat(orderWithPlace.canAddPlace()).isTrue();
@@ -107,19 +108,19 @@ public class OrdersRepositoryPostgreSqlAdapterTest
         final OrderId orderId = ordersRepository.nextId();
 
         final Order order = Order.start(orderId);
-        ordersRepository.save(order);
+        transactionManager.executeInTransaction(() -> ordersRepository.save(order));
 
-        final Order startedOrder = ordersRepository.findById(orderId).orElseThrow();
+        final Order startedOrder = transactionManager.executeInTransaction(() -> ordersRepository.findById(orderId).orElseThrow());
         final PlaceId placeId = placesRepository.nextId();
 
         startedOrder.addPlace(placeId);
-        ordersRepository.save(startedOrder);
+        transactionManager.executeInTransaction(() -> ordersRepository.save(startedOrder));
 
-        final Order orderWithPlace = ordersRepository.findById(orderId).orElseThrow();
+        final Order orderWithPlace = transactionManager.executeInTransaction(() -> ordersRepository.findById(orderId).orElseThrow());
         orderWithPlace.removePlace(placeId);
-        ordersRepository.save(orderWithPlace);
+        transactionManager.executeInTransaction(() -> ordersRepository.save(orderWithPlace));
 
-        final Order orderWithRemovePlace = ordersRepository.findById(orderId).orElseThrow();
+        final Order orderWithRemovePlace = transactionManager.executeInTransaction(() -> ordersRepository.findById(orderId).orElseThrow());
 
         assertThat(orderWithRemovePlace.status()).isEqualTo(OrderStatus.STARTED);
         assertThat(orderWithRemovePlace.places()).isEmpty();
@@ -137,19 +138,19 @@ public class OrdersRepositoryPostgreSqlAdapterTest
         final OrderId orderId = ordersRepository.nextId();
 
         final Order order = Order.start(orderId);
-        ordersRepository.save(order);
+        transactionManager.executeInTransaction(() -> ordersRepository.save(order));
 
-        final Order startedOrder = ordersRepository.findById(orderId).orElseThrow();
+        final Order startedOrder = transactionManager.executeInTransaction(() -> ordersRepository.findById(orderId).orElseThrow());
         final PlaceId placeId = placesRepository.nextId();
 
         startedOrder.addPlace(placeId);
-        ordersRepository.save(startedOrder);
+        transactionManager.executeInTransaction(() -> ordersRepository.save(startedOrder));
 
-        final Order orderWithPlace = ordersRepository.findById(orderId).orElseThrow();
+        final Order orderWithPlace = transactionManager.executeInTransaction(() -> ordersRepository.findById(orderId).orElseThrow());
         orderWithPlace.submit();
-        ordersRepository.save(orderWithPlace);
+        transactionManager.executeInTransaction(() -> ordersRepository.save(orderWithPlace));
 
-        final Order submittedOrder = ordersRepository.findById(orderId).orElseThrow();
+        final Order submittedOrder = transactionManager.executeInTransaction(() -> ordersRepository.findById(orderId).orElseThrow());
 
         assertThat(submittedOrder.status()).isEqualTo(OrderStatus.SUBMITTED);
         assertThat(submittedOrder.places()).hasSize(1).first().isEqualTo(placeId);
@@ -168,23 +169,23 @@ public class OrdersRepositoryPostgreSqlAdapterTest
         final OrderId orderId = ordersRepository.nextId();
 
         final Order order = Order.start(orderId);
-        ordersRepository.save(order);
+        transactionManager.executeInTransaction(() -> ordersRepository.save(order));
 
-        final Order startedOrder = ordersRepository.findById(orderId).orElseThrow();
+        final Order startedOrder = transactionManager.executeInTransaction(() -> ordersRepository.findById(orderId).orElseThrow());
         final PlaceId placeId = placesRepository.nextId();
 
         startedOrder.addPlace(placeId);
-        ordersRepository.save(startedOrder);
+        transactionManager.executeInTransaction(() -> ordersRepository.save(startedOrder));
 
-        final Order orderWithPlace = ordersRepository.findById(orderId).orElseThrow();
+        final Order orderWithPlace = transactionManager.executeInTransaction(() -> ordersRepository.findById(orderId).orElseThrow());
         orderWithPlace.submit();
-        ordersRepository.save(orderWithPlace);
+        transactionManager.executeInTransaction(() -> ordersRepository.save(orderWithPlace));
 
-        final Order submittedOrder = ordersRepository.findById(orderId).orElseThrow();
+        final Order submittedOrder = transactionManager.executeInTransaction(() -> ordersRepository.findById(orderId).orElseThrow());
         submittedOrder.confirm();
-        ordersRepository.save(submittedOrder);
+        transactionManager.executeInTransaction(() -> ordersRepository.save(submittedOrder));
 
-        final Order confirmedOrder = ordersRepository.findById(orderId).orElseThrow();
+        final Order confirmedOrder = transactionManager.executeInTransaction(() -> ordersRepository.findById(orderId).orElseThrow());
         assertThat(confirmedOrder.status()).isEqualTo(OrderStatus.CONFIRMED);
         assertThat(confirmedOrder.places()).hasSize(1).first().isEqualTo(placeId);
         assertThat(confirmedOrder.canAddPlace()).isFalse();
@@ -202,23 +203,23 @@ public class OrdersRepositoryPostgreSqlAdapterTest
         final OrderId orderId = ordersRepository.nextId();
 
         final Order order = Order.start(orderId);
-        ordersRepository.save(order);
+        transactionManager.executeInTransaction(() -> ordersRepository.save(order));
 
-        final Order startedOrder = ordersRepository.findById(orderId).orElseThrow();
+        final Order startedOrder = transactionManager.executeInTransaction(() -> ordersRepository.findById(orderId).orElseThrow());
         final PlaceId placeId = placesRepository.nextId();
 
         startedOrder.addPlace(placeId);
-        ordersRepository.save(startedOrder);
+        transactionManager.executeInTransaction(() -> ordersRepository.save(startedOrder));
 
-        final Order orderWithPlace = ordersRepository.findById(orderId).orElseThrow();
+        final Order orderWithPlace = transactionManager.executeInTransaction(() -> ordersRepository.findById(orderId).orElseThrow());
         orderWithPlace.submit();
-        ordersRepository.save(orderWithPlace);
+        transactionManager.executeInTransaction(() -> ordersRepository.save(orderWithPlace));
 
-        final Order submittedOrder = ordersRepository.findById(orderId).orElseThrow();
+        final Order submittedOrder = transactionManager.executeInTransaction(() -> ordersRepository.findById(orderId).orElseThrow());
         submittedOrder.cancel();
-        ordersRepository.save(submittedOrder);
+        transactionManager.executeInTransaction(() -> ordersRepository.save(submittedOrder));
 
-        final Order cancelledOrder = ordersRepository.findById(orderId).orElseThrow();
+        final Order cancelledOrder = transactionManager.executeInTransaction(() -> ordersRepository.findById(orderId).orElseThrow());
         assertThat(cancelledOrder.status()).isEqualTo(OrderStatus.CANCELLED);
         assertThat(cancelledOrder.places()).isEmpty();
         assertThat(cancelledOrder.canAddPlace()).isFalse();

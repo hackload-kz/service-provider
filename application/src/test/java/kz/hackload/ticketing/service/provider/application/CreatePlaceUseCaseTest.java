@@ -9,9 +9,10 @@ import kz.hackload.ticketing.service.provider.domain.places.*;
 
 public class CreatePlaceUseCaseTest
 {
+    private final TransactionManager transactionManager = new NoopTransactionManager();
     private final PlacesRepository placesRepository = new PlacesRepositoryInMemoryAdapter();
 
-    private final CreatePlaceUseCase createPlaceUseCase = new CreatePlaceApplicationService(placesRepository);
+    private final CreatePlaceUseCase createPlaceUseCase = new CreatePlaceApplicationService(transactionManager, placesRepository);
 
     @Test
     void shouldCreatePlace() throws AggregateRestoreException

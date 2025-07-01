@@ -10,17 +10,19 @@ import kz.hackload.ticketing.service.provider.domain.places.*;
 
 public class SubmitOrderUseCaseTest
 {
+    private final TransactionManager transactionManager = new NoopTransactionManager();
+
     private final OrdersRepository ordersRepository = new OrdersRepositoryInMemoryAdapter();
     private final PlacesRepository placesRepository = new PlacesRepositoryInMemoryAdapter();
 
     private final SelectPlaceService selectPlaceService = new SelectPlaceService();
     private final AddPlaceToOrderService addPlaceToOrderService = new AddPlaceToOrderService();
 
-    private final CreatePlaceUseCase createPlaceUseCase = new CreatePlaceApplicationService(placesRepository);
-    private final StartOrderUseCase startOrderUseCase = new StartOrderApplicationService(ordersRepository);
-    private final SelectPlaceUseCase selectPlaceUseCase = new SelectPlaceApplicationService(selectPlaceService, placesRepository, ordersRepository);
-    private final SubmitOrderUseCase submitOrderUseCase = new SubmitOrderApplicationService(ordersRepository);
-    private final AddPlaceToOrderUseCase addPlaceToOrderUseCase = new AddPlaceToOrderApplicationService(ordersRepository, placesRepository, addPlaceToOrderService);
+    private final CreatePlaceUseCase createPlaceUseCase = new CreatePlaceApplicationService(transactionManager, placesRepository);
+    private final StartOrderUseCase startOrderUseCase = new StartOrderApplicationService(transactionManager, ordersRepository);
+    private final SelectPlaceUseCase selectPlaceUseCase = new SelectPlaceApplicationService(selectPlaceService, transactionManager, placesRepository, ordersRepository);
+    private final SubmitOrderUseCase submitOrderUseCase = new SubmitOrderApplicationService(transactionManager, ordersRepository);
+    private final AddPlaceToOrderUseCase addPlaceToOrderUseCase = new AddPlaceToOrderApplicationService(transactionManager, ordersRepository, placesRepository, addPlaceToOrderService);
 
     @Test
     void shouldSubmitOrder() throws PlaceCanNotBeAddedToOrderException,

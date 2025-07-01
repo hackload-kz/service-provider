@@ -10,12 +10,10 @@ import org.junit.jupiter.api.Test;
 
 import io.javalin.Javalin;
 import io.javalin.testtools.JavalinTest;
-import kz.hackload.ticketing.service.provider.application.ReleasePlaceApplicationService;
-import kz.hackload.ticketing.service.provider.application.ReleasePlaceUseCase;
-import kz.hackload.ticketing.service.provider.application.SelectPlaceApplicationService;
-import kz.hackload.ticketing.service.provider.application.SelectPlaceUseCase;
+import kz.hackload.ticketing.service.provider.application.*;
 import kz.hackload.ticketing.service.provider.domain.orders.*;
 import kz.hackload.ticketing.service.provider.domain.places.*;
+import kz.hackload.ticketing.service.provider.infrastructure.adapters.NoopTransactionManager;
 import kz.hackload.ticketing.service.provider.infrastructure.adapters.OrdersRepositoryInMemoryAdapter;
 import kz.hackload.ticketing.service.provider.infrastructure.adapters.PlacesRepositoryInMemoryAdapter;
 import okhttp3.Response;
@@ -28,8 +26,10 @@ public class PlaceResourcesTest
     private final SelectPlaceService selectPlaceService = new SelectPlaceService();
     private final ReleasePlaceService releasePlaceService = new ReleasePlaceService();
 
-    private final SelectPlaceUseCase selectPlaceUseCase = new SelectPlaceApplicationService(selectPlaceService, placesRepository, ordersRepository);
-    private final ReleasePlaceUseCase releasePlaceUseCase = new ReleasePlaceApplicationService(releasePlaceService, placesRepository, ordersRepository);
+    private final TransactionManager transactionManager = new NoopTransactionManager();
+
+    private final SelectPlaceUseCase selectPlaceUseCase = new SelectPlaceApplicationService(selectPlaceService, transactionManager, placesRepository, ordersRepository);
+    private final ReleasePlaceUseCase releasePlaceUseCase = new ReleasePlaceApplicationService(releasePlaceService, transactionManager, placesRepository, ordersRepository);
 
     private PlacesResourceJavalinHttpAdapter adapter;
     private Javalin server;

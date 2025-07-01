@@ -10,14 +10,17 @@ public final class SelectPlaceApplicationService implements SelectPlaceUseCase
 {
     private final SelectPlaceService selectPlaceService;
 
+    private final TransactionManager transactionManager;
     private final PlacesRepository placesRepository;
     private final OrdersRepository ordersRepository;
 
     public SelectPlaceApplicationService(final SelectPlaceService selectPlaceService,
+                                         final TransactionManager transactionManager,
                                          final PlacesRepository placesRepository,
                                          final OrdersRepository ordersRepository)
     {
         this.selectPlaceService = selectPlaceService;
+        this.transactionManager = transactionManager;
         this.placesRepository = placesRepository;
         this.ordersRepository = ordersRepository;
     }
@@ -25,12 +28,11 @@ public final class SelectPlaceApplicationService implements SelectPlaceUseCase
     @Override
     public void selectPlaceFor(final PlaceId placeId, final OrderId orderId) throws PlaceAlreadySelectedException, PlaceCanNotBeAddedToOrderException, AggregateRestoreException
     {
-        // TODO: throw place not found exception
-        final Place place = placesRepository.findById(placeId).orElseThrow();
-        final Order order = ordersRepository.findById(orderId).orElseThrow();
+        final Place place = transactionManager.executeInTransaction(() -> placesRepository.findById(placeId).orElseThrow());
+        final Order order = transactionManager.executeInTransaction(() -> ordersRepository.findById(orderId).orElseThrow());
 
         selectPlaceService.selectPlaceForOrder(place, order);
 
-        placesRepository.save(place);
+        transactionManager.executeInTransaction(() -> placesRepository.save(place));
     }
 }

@@ -61,7 +61,9 @@ public class PlacesRepositoryPostgreSqlAdapterTest
 
         final DataSource dataSource = new HikariDataSource(hikariConfig);
 
-        final PlacesRepository placesRepository = new PlacesRepositoryPostgreSqlAdapter(dataSource);
+        final JdbcTransactionManager jdbcTransactionManager = new JdbcTransactionManager(dataSource);
+
+        final PlacesRepository placesRepository = new PlacesRepositoryPostgreSqlAdapter(jdbcTransactionManager);
 
         final Row row = new Row(1);
         final Seat seat = new Seat(1);
@@ -69,9 +71,9 @@ public class PlacesRepositoryPostgreSqlAdapterTest
         final PlaceId placeId = placesRepository.nextId();
         final Place place = Place.create(placeId, row, seat);
 
-        placesRepository.save(place);
+        jdbcTransactionManager.executeInTransaction(() -> placesRepository.save(place));
 
-        final Place createdPlace = placesRepository.findById(placeId).orElseThrow();
+        final Place createdPlace = jdbcTransactionManager.executeInTransaction(() -> placesRepository.findById(placeId).orElseThrow());
         assertThat(createdPlace).isEqualTo(place);
         assertThat(createdPlace.isFree()).isTrue();
         assertThat(createdPlace.selectedFor()).isEmpty();
@@ -81,9 +83,9 @@ public class PlacesRepositoryPostgreSqlAdapterTest
         final OrderId orderId = ordersRepository.nextId();
         createdPlace.selectFor(orderId);
 
-        placesRepository.save(createdPlace);
+        jdbcTransactionManager.executeInTransaction(() -> placesRepository.save(createdPlace));
 
-        final Place selectedPlace = placesRepository.findById(placeId).orElseThrow();
+        final Place selectedPlace = jdbcTransactionManager.executeInTransaction(() -> placesRepository.findById(placeId).orElseThrow());
         assertThat(selectedPlace.isFree()).isFalse();
         assertThat(selectedPlace.selectedFor()).isPresent().get().isEqualTo(orderId);
         assertThat(selectedPlace.row()).isEqualTo(row);
@@ -91,9 +93,9 @@ public class PlacesRepositoryPostgreSqlAdapterTest
 
         selectedPlace.release();
 
-        placesRepository.save(selectedPlace);
+        jdbcTransactionManager.executeInTransaction(() -> placesRepository.save(selectedPlace));
 
-        final Place releasedPlace = placesRepository.findById(placeId).orElseThrow();
+        final Place releasedPlace = jdbcTransactionManager.executeInTransaction(() -> placesRepository.findById(placeId).orElseThrow());
         assertThat(releasedPlace.isFree()).isTrue();
         assertThat(releasedPlace.selectedFor()).isEmpty();
         assertThat(releasedPlace.row()).isEqualTo(row);
