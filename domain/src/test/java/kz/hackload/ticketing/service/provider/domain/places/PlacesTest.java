@@ -5,28 +5,24 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
 
 import kz.hackload.ticketing.service.provider.domain.AggregateRestoreException;
 import kz.hackload.ticketing.service.provider.domain.DomainEvent;
-import kz.hackload.ticketing.service.provider.domain.OrdersRepositoryInMemoryAdapter;
-import kz.hackload.ticketing.service.provider.domain.PlacesRepositoryInMemoryAdapter;
 import kz.hackload.ticketing.service.provider.domain.orders.OrderId;
-import kz.hackload.ticketing.service.provider.domain.orders.OrdersRepository;
 
 public class PlacesTest
 {
-    private final PlacesRepository placesRepository = new PlacesRepositoryInMemoryAdapter();
-    private final OrdersRepository ordersRepository = new OrdersRepositoryInMemoryAdapter();
-    private final OrderId orderId = ordersRepository.nextId();
+    private final OrderId orderId = new OrderId(UUID.randomUUID());
 
     @Test
     void shouldCreateFreePlace()
     {
         final var row = new Row(1);
         final var seat = new Seat(1);
-        final var placeId = placesRepository.nextId();
+        final var placeId = new PlaceId(UUID.randomUUID());
         final var place = Place.create(placeId, row, seat);
 
         assertThat(place.id()).isEqualTo(placeId);
@@ -40,7 +36,7 @@ public class PlacesTest
     {
         final var row = new Row(1);
         final var seat = new Seat(1);
-        final var placeId = placesRepository.nextId();
+        final var placeId = new PlaceId(UUID.randomUUID());
         final var place = Place.create(placeId, row, seat);
         place.commitEvents();
 
@@ -66,7 +62,7 @@ public class PlacesTest
     {
         final var row = new Row(1);
         final var seat = new Seat(1);
-        final var placeId = placesRepository.nextId();
+        final var placeId = new PlaceId(UUID.randomUUID());
         final var place = Place.create(placeId, row, seat);
         place.commitEvents();
 
@@ -86,7 +82,7 @@ public class PlacesTest
     {
         final var row = new Row(1);
         final var seat = new Seat(1);
-        final var placeId = placesRepository.nextId();
+        final var placeId = new PlaceId(UUID.randomUUID());
         final var place = Place.create(placeId, row, seat);
 
         place.selectFor(orderId);
@@ -101,7 +97,7 @@ public class PlacesTest
     {
         final var row = new Row(1);
         final var seat = new Seat(1);
-        final var placeId = placesRepository.nextId();
+        final var placeId = new PlaceId(UUID.randomUUID());
         final var place = Place.create(placeId, row, seat);
 
         place.selectFor(orderId);
@@ -117,7 +113,7 @@ public class PlacesTest
     {
         final var row = new Row(1);
         final var seat = new Seat(1);
-        final var placeId = placesRepository.nextId();
+        final var placeId = new PlaceId(UUID.randomUUID());
         final var place = Place.create(placeId, row, seat);
 
         assertThat(place.isFree()).isTrue();
@@ -133,7 +129,7 @@ public class PlacesTest
     {
         final var row = new Row(1);
         final var seat = new Seat(1);
-        final var placeId = placesRepository.nextId();
+        final var placeId = new PlaceId(UUID.randomUUID());
 
         final PlaceCreatedEvent event = new PlaceCreatedEvent(row, seat);
 
@@ -150,7 +146,7 @@ public class PlacesTest
     {
         final var row = new Row(1);
         final var seat = new Seat(1);
-        final var placeId = placesRepository.nextId();
+        final var placeId = new PlaceId(UUID.randomUUID());
 
         final PlaceCreatedEvent event = new PlaceCreatedEvent(row, seat);
         final PlaceSelectedEvent placeSelectedEvent1 = new PlaceSelectedEvent(orderId);

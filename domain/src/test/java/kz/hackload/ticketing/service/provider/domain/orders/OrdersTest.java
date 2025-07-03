@@ -5,24 +5,19 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
 
 import kz.hackload.ticketing.service.provider.domain.AggregateRestoreException;
-import kz.hackload.ticketing.service.provider.domain.OrdersRepositoryInMemoryAdapter;
-import kz.hackload.ticketing.service.provider.domain.PlacesRepositoryInMemoryAdapter;
 import kz.hackload.ticketing.service.provider.domain.places.PlaceId;
-import kz.hackload.ticketing.service.provider.domain.places.PlacesRepository;
 
 public class OrdersTest
 {
-    private final PlacesRepository placesRepository = new PlacesRepositoryInMemoryAdapter();
-    private final OrdersRepository ordersRepository = new OrdersRepositoryInMemoryAdapter();
-
     @Test
     void shouldCreateOrder()
     {
-        final OrderId orderId = ordersRepository.nextId();
+        final OrderId orderId = new OrderId(UUID.randomUUID());
         final Order order = Order.start(orderId);
 
         assertThat(order.id()).isEqualTo(orderId);
@@ -42,11 +37,11 @@ public class OrdersTest
     @Test
     void shouldAddPlace() throws PlaceAlreadyAddedException, OrderNotStartedException
     {
-        final OrderId orderId = ordersRepository.nextId();
+        final OrderId orderId = new OrderId(UUID.randomUUID());
         final Order order = Order.start(orderId);
         order.commitEvents();
 
-        final PlaceId placeId = placesRepository.nextId();
+        final PlaceId placeId = new PlaceId(UUID.randomUUID());
 
         order.addPlace(placeId);
 
@@ -64,10 +59,10 @@ public class OrdersTest
     @Test
     void shouldHandlePlaceReleasedEvent() throws PlaceAlreadyAddedException, PlaceNotAddedException, OrderNotStartedException
     {
-        final OrderId orderId = ordersRepository.nextId();
+        final OrderId orderId = new OrderId(UUID.randomUUID());
         final Order order = Order.start(orderId);
 
-        final PlaceId placeId = placesRepository.nextId();
+        final PlaceId placeId = new PlaceId(UUID.randomUUID());
 
         order.addPlace(placeId);
         order.commitEvents();
@@ -85,10 +80,10 @@ public class OrdersTest
     @Test
     void shouldNotHandleDuplicateSelectedPlaceEvent() throws PlaceAlreadyAddedException, OrderNotStartedException
     {
-        final OrderId orderId = ordersRepository.nextId();
+        final OrderId orderId = new OrderId(UUID.randomUUID());
         final Order order = Order.start(orderId);
 
-        final PlaceId placeId = placesRepository.nextId();
+        final PlaceId placeId = new PlaceId(UUID.randomUUID());
 
         order.addPlace(placeId);
         order.commitEvents();
@@ -104,10 +99,10 @@ public class OrdersTest
     @Test
     void shouldNotHandleDuplicatePlaceReleasedEvent() throws PlaceAlreadyAddedException, PlaceNotAddedException, OrderNotStartedException
     {
-        final OrderId orderId = ordersRepository.nextId();
+        final OrderId orderId = new OrderId(UUID.randomUUID());
         final Order order = Order.start(orderId);
 
-        final PlaceId placeId = placesRepository.nextId();
+        final PlaceId placeId = new PlaceId(UUID.randomUUID());
 
         order.addPlace(placeId);
 
@@ -125,11 +120,11 @@ public class OrdersTest
     @Test
     void shouldSubmitOrder() throws PlaceAlreadyAddedException, NoPlacesAddedException, OrderNotStartedException
     {
-        final OrderId orderId = ordersRepository.nextId();
+        final OrderId orderId = new OrderId(UUID.randomUUID());
         final Order order = Order.start(orderId);
         order.commitEvents();
 
-        final PlaceId placeId = placesRepository.nextId();
+        final PlaceId placeId = new PlaceId(UUID.randomUUID());
 
         order.addPlace(placeId);
         order.commitEvents();
@@ -146,11 +141,11 @@ public class OrdersTest
     @Test
     void shouldNotAddPlaceToSubmittedOrder() throws PlaceAlreadyAddedException, NoPlacesAddedException, OrderNotStartedException
     {
-        final OrderId orderId = ordersRepository.nextId();
+        final OrderId orderId = new OrderId(UUID.randomUUID());
         final Order order = Order.start(orderId);
         order.commitEvents();
 
-        final PlaceId placeId = placesRepository.nextId();
+        final PlaceId placeId = new PlaceId(UUID.randomUUID());
 
         order.addPlace(placeId);
         order.submit();
@@ -168,11 +163,11 @@ public class OrdersTest
     @Test
     void shouldNotRemovePlaceFromNotStartedOrder() throws PlaceAlreadyAddedException, NoPlacesAddedException, OrderNotStartedException
     {
-        final OrderId orderId = ordersRepository.nextId();
+        final OrderId orderId = new OrderId(UUID.randomUUID());
         final Order order = Order.start(orderId);
         order.commitEvents();
 
-        final PlaceId placeId = placesRepository.nextId();
+        final PlaceId placeId = new PlaceId(UUID.randomUUID());
 
         order.addPlace(placeId);
         order.submit();
@@ -190,7 +185,7 @@ public class OrdersTest
     @Test
     void shouldNotSubmitOrderWithoutAddedPlaces()
     {
-        final OrderId orderId = ordersRepository.nextId();
+        final OrderId orderId = new OrderId(UUID.randomUUID());
         final Order order = Order.start(orderId);
         order.commitEvents();
 
@@ -205,7 +200,7 @@ public class OrdersTest
     @Test
     void shouldRestoreOrderFromEvents()
     {
-        final OrderId orderId = ordersRepository.nextId();
+        final OrderId orderId = new OrderId(UUID.randomUUID());
         List<OrderDomainEvent> envelopes = List.of(new OrderStartedEvent());
 
         final Order order = Order.restore(orderId, 1L, envelopes);
@@ -219,8 +214,8 @@ public class OrdersTest
     @Test
     void shouldNotRestoreOrderFromEvents()
     {
-        final OrderId orderId = ordersRepository.nextId();
-        final PlaceId placeId = placesRepository.nextId();
+        final OrderId orderId = new OrderId(UUID.randomUUID());
+        final PlaceId placeId = new PlaceId(UUID.randomUUID());
 
         List<OrderDomainEvent> events = List.of(new OrderStartedEvent(), new PlaceAddedToOrderEvent(placeId), new PlaceAddedToOrderEvent(placeId));
 
@@ -232,11 +227,11 @@ public class OrdersTest
     @Test
     void shouldConfirmOrder() throws OrderNotStartedException, PlaceAlreadyAddedException, NoPlacesAddedException, OrderNotSubmittedException
     {
-        final OrderId orderId = ordersRepository.nextId();
+        final OrderId orderId = new OrderId(UUID.randomUUID());
         final Order order = Order.start(orderId);
         order.commitEvents();
 
-        final PlaceId placeId = placesRepository.nextId();
+        final PlaceId placeId = new PlaceId(UUID.randomUUID());
 
         order.addPlace(placeId);
         order.submit();
@@ -255,11 +250,11 @@ public class OrdersTest
     @Test
     void shouldNotConfirmNonSubmittedOrder() throws OrderNotStartedException, PlaceAlreadyAddedException
     {
-        final OrderId orderId = ordersRepository.nextId();
+        final OrderId orderId = new OrderId(UUID.randomUUID());
         final Order order = Order.start(orderId);
         order.commitEvents();
 
-        final PlaceId placeId = placesRepository.nextId();
+        final PlaceId placeId = new PlaceId(UUID.randomUUID());
 
         order.addPlace(placeId);
 
@@ -276,7 +271,7 @@ public class OrdersTest
     @Test
     void shouldCancelEmptyStartedOrder() throws OrderAlreadyCancelledException
     {
-        final OrderId orderId = ordersRepository.nextId();
+        final OrderId orderId = new OrderId(UUID.randomUUID());
         final Order order = Order.start(orderId);
         order.commitEvents();
 
@@ -292,10 +287,10 @@ public class OrdersTest
     @Test
     void shouldRemovePlacesFromOrderAndCancelStartedOrder() throws OrderNotStartedException, PlaceAlreadyAddedException, OrderAlreadyCancelledException
     {
-        final OrderId orderId = ordersRepository.nextId();
+        final OrderId orderId = new OrderId(UUID.randomUUID());
         final Order order = Order.start(orderId);
 
-        final PlaceId placeId = placesRepository.nextId();
+        final PlaceId placeId = new PlaceId(UUID.randomUUID());
         order.addPlace(placeId);
         order.commitEvents();
 
@@ -311,10 +306,10 @@ public class OrdersTest
             PlaceAlreadyAddedException,
             NoPlacesAddedException, OrderAlreadyCancelledException
     {
-        final OrderId orderId = ordersRepository.nextId();
+        final OrderId orderId = new OrderId(UUID.randomUUID());
         final Order order = Order.start(orderId);
 
-        final PlaceId placeId = placesRepository.nextId();
+        final PlaceId placeId = new PlaceId(UUID.randomUUID());
         order.addPlace(placeId);
         order.submit();
         order.commitEvents();
@@ -329,7 +324,7 @@ public class OrdersTest
     @Test
     void shouldNotCancelCancelledOrder() throws OrderAlreadyCancelledException
     {
-        final OrderId orderId = ordersRepository.nextId();
+        final OrderId orderId = new OrderId(UUID.randomUUID());
         final Order order = Order.start(orderId);
 
         order.cancel();
