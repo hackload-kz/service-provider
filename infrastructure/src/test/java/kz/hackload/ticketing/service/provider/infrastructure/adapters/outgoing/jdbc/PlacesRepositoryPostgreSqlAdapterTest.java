@@ -14,7 +14,6 @@ import io.goodforgod.testcontainers.extensions.ContainerMode;
 import io.goodforgod.testcontainers.extensions.jdbc.ConnectionPostgreSQL;
 import io.goodforgod.testcontainers.extensions.jdbc.JdbcConnection;
 import io.goodforgod.testcontainers.extensions.jdbc.TestcontainersPostgreSQL;
-import kz.hackload.ticketing.service.provider.domain.AggregateRestoreException;
 import kz.hackload.ticketing.service.provider.domain.orders.OrderId;
 import kz.hackload.ticketing.service.provider.domain.orders.OrdersRepository;
 import kz.hackload.ticketing.service.provider.domain.places.*;
@@ -50,9 +49,7 @@ public class PlacesRepositoryPostgreSqlAdapterTest
     }
 
     @Test
-    void shouldSavePlaceAsEventsInDbThenRestore() throws AggregateRestoreException,
-            PlaceAlreadySelectedException,
-            PlaceAlreadyReleasedException
+    void shouldSavePlaceAsEventsInDbThenRestore() throws PlaceAlreadySelectedException, PlaceAlreadyReleasedException
     {
         final HikariConfig hikariConfig = new HikariConfig();
         hikariConfig.setJdbcUrl(postgresConnection.params().jdbcUrl());

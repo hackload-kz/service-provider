@@ -203,7 +203,7 @@ public class OrdersTest
     }
 
     @Test
-    void shouldRestoreOrderFromEvents() throws AggregateRestoreException
+    void shouldRestoreOrderFromEvents()
     {
         final OrderId orderId = ordersRepository.nextId();
         List<OrderDomainEvent> envelopes = List.of(new OrderStartedEvent());

@@ -9,7 +9,6 @@ import kz.hackload.ticketing.service.provider.application.CancelOrderUseCase;
 import kz.hackload.ticketing.service.provider.application.ConfirmOrderUseCase;
 import kz.hackload.ticketing.service.provider.application.StartOrderUseCase;
 import kz.hackload.ticketing.service.provider.application.SubmitOrderUseCase;
-import kz.hackload.ticketing.service.provider.domain.AggregateRestoreException;
 import kz.hackload.ticketing.service.provider.domain.orders.*;
 
 public class OrderResourcesJavalinHttpAdapter
@@ -60,7 +59,7 @@ public class OrderResourcesJavalinHttpAdapter
         {
             context.status(HttpStatus.CONFLICT);
         }
-        catch (final AggregateRestoreException e)
+        catch (final RuntimeException e)
         {
             context.status(HttpStatus.INTERNAL_SERVER_ERROR);
         }
@@ -79,7 +78,7 @@ public class OrderResourcesJavalinHttpAdapter
         {
             context.status(HttpStatus.CONFLICT);
         }
-        catch (final AggregateRestoreException e)
+        catch (final RuntimeException e)
         {
             context.status(HttpStatus.INTERNAL_SERVER_ERROR);
         }
@@ -98,7 +97,7 @@ public class OrderResourcesJavalinHttpAdapter
         {
             context.status(HttpStatus.CONFLICT);
         }
-        catch (final AggregateRestoreException e)
+        catch (final RuntimeException e)
         {
             context.status(HttpStatus.INTERNAL_SERVER_ERROR);
         }

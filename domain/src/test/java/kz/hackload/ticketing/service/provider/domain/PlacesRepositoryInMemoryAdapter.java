@@ -27,7 +27,7 @@ public final class PlacesRepositoryInMemoryAdapter implements PlacesRepository
     }
 
     @Override
-    public Optional<Place> findById(final PlaceId placeId) throws AggregateRestoreException
+    public Optional<Place> findById(final PlaceId placeId)
     {
         return Optional.ofNullable(places.get(placeId));
     }

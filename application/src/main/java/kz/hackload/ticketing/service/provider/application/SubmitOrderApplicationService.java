@@ -1,6 +1,5 @@
 package kz.hackload.ticketing.service.provider.application;
 
-import kz.hackload.ticketing.service.provider.domain.AggregateRestoreException;
 import kz.hackload.ticketing.service.provider.domain.orders.*;
 
 public final class SubmitOrderApplicationService implements SubmitOrderUseCase
@@ -16,7 +15,7 @@ public final class SubmitOrderApplicationService implements SubmitOrderUseCase
     }
 
     @Override
-    public void submit(final OrderId orderId) throws OrderNotStartedException, NoPlacesAddedException, AggregateRestoreException
+    public void submit(final OrderId orderId) throws OrderNotStartedException, NoPlacesAddedException
     {
         final Order order = transactionManager.executeInTransaction(() -> ordersRepository.findById(orderId).orElseThrow());
 

@@ -4,6 +4,6 @@ import java.util.UUID;
 
 import kz.hackload.ticketing.service.provider.domain.DomainEntityId;
 
-public record PlaceId(UUID value) implements DomainEntityId
+public record PlaceId(UUID value) implements DomainEntityId<UUID>
 {
 }

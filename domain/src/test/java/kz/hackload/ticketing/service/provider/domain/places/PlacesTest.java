@@ -129,7 +129,7 @@ public class PlacesTest
     }
 
     @Test
-    void shouldRestorePlaceFromEvents() throws AggregateRestoreException
+    void shouldRestorePlaceFromEvents()
     {
         final var row = new Row(1);
         final var seat = new Seat(1);

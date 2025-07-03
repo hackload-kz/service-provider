@@ -5,7 +5,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
-import kz.hackload.ticketing.service.provider.domain.AggregateRestoreException;
 import kz.hackload.ticketing.service.provider.domain.places.Place;
 import kz.hackload.ticketing.service.provider.domain.places.PlaceId;
 import kz.hackload.ticketing.service.provider.domain.places.PlacesRepository;
@@ -28,7 +27,7 @@ public final class PlacesRepositoryInMemoryAdapter implements PlacesRepository
     }
 
     @Override
-    public Optional<Place> findById(final PlaceId placeId) throws AggregateRestoreException
+    public Optional<Place> findById(final PlaceId placeId)
     {
         return Optional.ofNullable(places.get(placeId));
     }

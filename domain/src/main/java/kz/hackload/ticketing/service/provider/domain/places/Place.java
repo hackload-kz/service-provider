@@ -36,7 +36,6 @@ public final class Place extends AggregateRoot<PlaceId, PlaceDomainEvent>
     }
 
     public static Place restore(final PlaceId id, final long revision, final List<PlaceDomainEvent> events)
-            throws AggregateRestoreException
     {
         final PlaceCreatedEvent placeCreatedEvent = (PlaceCreatedEvent) events.getFirst();
         final Place place = new Place(id, placeCreatedEvent.row(), placeCreatedEvent.seat());

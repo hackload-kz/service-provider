@@ -38,7 +38,6 @@ public final class Order extends AggregateRoot<OrderId, OrderDomainEvent>
     }
 
     public static Order restore(final OrderId id, final long revision, final List<OrderDomainEvent> events)
-            throws AggregateRestoreException
     {
         final Order order = new Order(id);
         for (OrderDomainEvent event : events)

@@ -5,7 +5,6 @@ import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import kz.hackload.ticketing.service.provider.application.ReleasePlaceUseCase;
 import kz.hackload.ticketing.service.provider.application.SelectPlaceUseCase;
-import kz.hackload.ticketing.service.provider.domain.AggregateRestoreException;
 import kz.hackload.ticketing.service.provider.domain.orders.OrderNotStartedException;
 import kz.hackload.ticketing.service.provider.domain.orders.PlaceNotAddedException;
 import kz.hackload.ticketing.service.provider.domain.places.PlaceAlreadyReleasedException;
@@ -48,7 +47,7 @@ public final class PlacesResourceJavalinHttpAdapter
         {
             context.status(HttpStatus.CONFLICT);
         }
-        catch (final AggregateRestoreException e)
+        catch (final RuntimeException e)
         {
             context.status(HttpStatus.INTERNAL_SERVER_ERROR);
         }
@@ -67,7 +66,7 @@ public final class PlacesResourceJavalinHttpAdapter
         {
             context.status(HttpStatus.CONFLICT);
         }
-        catch (final AggregateRestoreException e)
+        catch (final RuntimeException e)
         {
             context.status(HttpStatus.INTERNAL_SERVER_ERROR);
         }

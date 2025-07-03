@@ -8,7 +8,6 @@ import java.util.*;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import kz.hackload.ticketing.service.provider.domain.AggregateRestoreException;
 import kz.hackload.ticketing.service.provider.domain.orders.*;
 import org.postgresql.util.PGobject;
 
@@ -30,7 +29,7 @@ public final class OrdersRepositoryPostgreSqlAdapter implements OrdersRepository
     }
 
     @Override
-    public Optional<Order> findById(final OrderId orderId) throws AggregateRestoreException
+    public Optional<Order> findById(final OrderId orderId)
     {
         record ResultSetRow(String id, String eventType, long revision, String data) {}
 

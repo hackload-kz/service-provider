@@ -14,7 +14,6 @@ import io.goodforgod.testcontainers.extensions.ContainerMode;
 import io.goodforgod.testcontainers.extensions.jdbc.ConnectionPostgreSQL;
 import io.goodforgod.testcontainers.extensions.jdbc.JdbcConnection;
 import io.goodforgod.testcontainers.extensions.jdbc.TestcontainersPostgreSQL;
-import kz.hackload.ticketing.service.provider.domain.AggregateRestoreException;
 import kz.hackload.ticketing.service.provider.domain.orders.*;
 import kz.hackload.ticketing.service.provider.domain.places.PlaceId;
 import kz.hackload.ticketing.service.provider.domain.places.PlacesRepository;
@@ -61,7 +60,7 @@ public class OrdersRepositoryPostgreSqlAdapterTest
     }
 
     @Test
-    void shouldSaveStartedOrder() throws AggregateRestoreException
+    void shouldSaveStartedOrder()
     {
         final OrderId orderId = ordersRepository.nextId();
 
@@ -76,9 +75,7 @@ public class OrdersRepositoryPostgreSqlAdapterTest
     }
 
     @Test
-    void shouldSaveOrderAfterAddingPlace() throws AggregateRestoreException,
-            OrderNotStartedException,
-            PlaceAlreadyAddedException
+    void shouldSaveOrderAfterAddingPlace() throws OrderNotStartedException, PlaceAlreadyAddedException
     {
         final OrderId orderId = ordersRepository.nextId();
 
@@ -100,10 +97,7 @@ public class OrdersRepositoryPostgreSqlAdapterTest
     }
 
     @Test
-    void shouldSaveOrderAfterRemovePlace() throws AggregateRestoreException,
-            OrderNotStartedException,
-            PlaceAlreadyAddedException,
-            PlaceNotAddedException
+    void shouldSaveOrderAfterRemovePlace() throws OrderNotStartedException, PlaceAlreadyAddedException, PlaceNotAddedException
     {
         final OrderId orderId = ordersRepository.nextId();
 
@@ -130,8 +124,7 @@ public class OrdersRepositoryPostgreSqlAdapterTest
     }
 
     @Test
-    void shouldSaveSubmittedOrder() throws AggregateRestoreException,
-            OrderNotStartedException,
+    void shouldSaveSubmittedOrder() throws OrderNotStartedException,
             PlaceAlreadyAddedException,
             NoPlacesAddedException
     {
@@ -160,8 +153,7 @@ public class OrdersRepositoryPostgreSqlAdapterTest
     }
 
     @Test
-    void shouldSaveConfirmedOrder() throws AggregateRestoreException,
-            OrderNotStartedException,
+    void shouldSaveConfirmedOrder() throws OrderNotStartedException,
             PlaceAlreadyAddedException,
             NoPlacesAddedException,
             OrderNotSubmittedException
@@ -194,8 +186,7 @@ public class OrdersRepositoryPostgreSqlAdapterTest
     }
 
     @Test
-    void shouldSaveCancelledOrder() throws AggregateRestoreException,
-            OrderNotStartedException,
+    void shouldSaveCancelledOrder() throws OrderNotStartedException,
             PlaceAlreadyAddedException,
             NoPlacesAddedException,
             OrderAlreadyCancelledException

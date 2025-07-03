@@ -12,7 +12,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.javalin.Javalin;
 import io.javalin.testtools.JavalinTest;
 import kz.hackload.ticketing.service.provider.application.*;
-import kz.hackload.ticketing.service.provider.domain.AggregateRestoreException;
 import kz.hackload.ticketing.service.provider.domain.orders.*;
 import kz.hackload.ticketing.service.provider.domain.places.*;
 import kz.hackload.ticketing.service.provider.infrastructure.adapters.NoopTransactionManager;
@@ -82,7 +81,6 @@ public class OrderResourcesTest
     @Test
     void orderSubmitted() throws PlaceCanNotBeAddedToOrderException,
             PlaceAlreadySelectedException,
-            AggregateRestoreException,
             OrderNotStartedException,
             PlaceIsNotSelectedException,
             PlaceSelectedForAnotherOrderException,
@@ -112,7 +110,6 @@ public class OrderResourcesTest
     @Test
     void orderConfirmed() throws OrderNotStartedException,
             NoPlacesAddedException,
-            AggregateRestoreException,
             PlaceIsNotSelectedException,
             PlaceSelectedForAnotherOrderException,
             PlaceAlreadyAddedException,
@@ -143,7 +140,6 @@ public class OrderResourcesTest
     @Test
     void orderCancelled() throws PlaceCanNotBeAddedToOrderException,
             PlaceAlreadySelectedException,
-            AggregateRestoreException,
             OrderNotStartedException,
             PlaceIsNotSelectedException,
             PlaceSelectedForAnotherOrderException,

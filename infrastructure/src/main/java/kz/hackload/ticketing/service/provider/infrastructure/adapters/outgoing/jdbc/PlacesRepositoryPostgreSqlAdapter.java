@@ -1,7 +1,5 @@
 package kz.hackload.ticketing.service.provider.infrastructure.adapters.outgoing.jdbc;
 
-import javax.sql.DataSource;
-
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -10,7 +8,6 @@ import java.util.*;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import kz.hackload.ticketing.service.provider.domain.AggregateRestoreException;
 import kz.hackload.ticketing.service.provider.domain.places.*;
 import org.postgresql.util.PGobject;
 
@@ -81,7 +78,7 @@ public final class PlacesRepositoryPostgreSqlAdapter implements PlacesRepository
     }
 
     @Override
-    public Optional<Place> findById(final PlaceId placeId) throws AggregateRestoreException
+    public Optional<Place> findById(final PlaceId placeId)
     {
         record ResultSetRow(String id, String eventType, long revision, String data) {}
 
