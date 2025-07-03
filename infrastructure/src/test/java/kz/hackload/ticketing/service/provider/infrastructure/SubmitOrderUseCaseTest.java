@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import javax.sql.DataSource;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -13,12 +14,16 @@ import io.goodforgod.testcontainers.extensions.ContainerMode;
 import io.goodforgod.testcontainers.extensions.jdbc.ConnectionPostgreSQL;
 import io.goodforgod.testcontainers.extensions.jdbc.JdbcConnection;
 import io.goodforgod.testcontainers.extensions.jdbc.TestcontainersPostgreSQL;
+import io.javalin.Javalin;
+import io.javalin.testtools.JavalinTest;
 import kz.hackload.ticketing.service.provider.application.*;
 import kz.hackload.ticketing.service.provider.domain.orders.*;
 import kz.hackload.ticketing.service.provider.domain.places.*;
+import kz.hackload.ticketing.service.provider.infrastructure.adapters.incoming.http.OrderResourcesJavalinHttpAdapter;
 import kz.hackload.ticketing.service.provider.infrastructure.adapters.outgoing.jdbc.JdbcTransactionManager;
 import kz.hackload.ticketing.service.provider.infrastructure.adapters.outgoing.jdbc.OrdersRepositoryPostgreSqlAdapter;
 import kz.hackload.ticketing.service.provider.infrastructure.adapters.outgoing.jdbc.PlacesRepositoryPostgreSqlAdapter;
+import okhttp3.Response;
 
 @TestcontainersPostgreSQL(mode = ContainerMode.PER_METHOD)
 public class SubmitOrderUseCaseTest
@@ -26,12 +31,13 @@ public class SubmitOrderUseCaseTest
     @ConnectionPostgreSQL
     private JdbcConnection postgresConnection;
 
+    private Javalin server;
+
     private JdbcTransactionManager transactionManager;
     private OrdersRepository ordersRepository;
     private CreatePlaceUseCase createPlaceUseCase;
     private StartOrderUseCase startOrderUseCase;
     private SelectPlaceUseCase selectPlaceUseCase;
-    private SubmitOrderUseCase submitOrderUseCase;
     private AddPlaceToOrderUseCase addPlaceToOrderUseCase;
 
     @BeforeEach
@@ -60,18 +66,30 @@ public class SubmitOrderUseCaseTest
         final PlacesRepository placesRepository = new PlacesRepositoryPostgreSqlAdapter(transactionManager);
         final SelectPlaceService selectPlaceService = new SelectPlaceService();
         final AddPlaceToOrderService addPlaceToOrderService = new AddPlaceToOrderService();
+
         createPlaceUseCase = new CreatePlaceApplicationService(transactionManager, placesRepository);
         startOrderUseCase = new StartOrderApplicationService(transactionManager, ordersRepository);
         selectPlaceUseCase = new SelectPlaceApplicationService(selectPlaceService, transactionManager, placesRepository, ordersRepository);
-        submitOrderUseCase = new SubmitOrderApplicationService(transactionManager, ordersRepository);
         addPlaceToOrderUseCase = new AddPlaceToOrderApplicationService(transactionManager, ordersRepository, placesRepository, addPlaceToOrderService);
+
+        final SubmitOrderUseCase submitOrderUseCase = new SubmitOrderApplicationService(transactionManager, ordersRepository);
+        final ConfirmOrderUseCase confirmOrderUseCase = new ConfirmOrderApplicationService(transactionManager, ordersRepository);
+        final CancelOrderUseCase cancelOrderUseCase = new CancelOrderApplicationService(transactionManager, ordersRepository);
+
+        server = Javalin.create();
+        new OrderResourcesJavalinHttpAdapter(server, startOrderUseCase, submitOrderUseCase, confirmOrderUseCase, cancelOrderUseCase);
+    }
+
+    @AfterEach
+    void tearDown()
+    {
+        server.stop();
     }
 
     @Test
-    void shouldSubmitOrder() throws PlaceCanNotBeAddedToOrderException,
+    void orderSubmitted() throws PlaceCanNotBeAddedToOrderException,
             PlaceAlreadySelectedException,
             OrderNotStartedException,
-            NoPlacesAddedException,
             PlaceIsNotSelectedException,
             PlaceSelectedForAnotherOrderException,
             PlaceAlreadyAddedException
@@ -85,17 +103,20 @@ public class SubmitOrderUseCaseTest
         selectPlaceUseCase.selectPlaceFor(placeId, orderId);
         addPlaceToOrderUseCase.addPlaceToOrder(placeId, orderId);
 
-        // when
-        submitOrderUseCase.submit(orderId);
+        JavalinTest.test(server, (_, c) ->
+        {
+            // when
+            try (final Response response = c.patch("/api/partners/v1/orders/" + orderId.value() + "/submit"))
+            {
+                assertThat(response.isSuccessful()).isTrue();
 
-        // then
-        final Order order = transactionManager.executeInTransaction(() -> ordersRepository.findById(orderId).orElseThrow());
-        assertThat(order.places())
-                .hasSize(1)
-                .first()
-                .isEqualTo(placeId);
+                final Order actual = transactionManager.executeInTransaction(() -> ordersRepository.findById(orderId).orElseThrow());
 
-        assertThat(order.status()).isEqualTo(OrderStatus.SUBMITTED);
-        assertThat(order.uncommittedEvents()).isEmpty();
+                // then
+                assertThat(actual.status()).isEqualTo(OrderStatus.SUBMITTED);
+                assertThat(actual.places()).hasSize(1).first().isEqualTo(placeId);
+                assertThat(actual.contains(placeId)).isTrue();
+            }
+        });
     }
 }

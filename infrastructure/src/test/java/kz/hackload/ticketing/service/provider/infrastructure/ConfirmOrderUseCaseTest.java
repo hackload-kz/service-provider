@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import javax.sql.DataSource;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -13,12 +14,16 @@ import io.goodforgod.testcontainers.extensions.ContainerMode;
 import io.goodforgod.testcontainers.extensions.jdbc.ConnectionPostgreSQL;
 import io.goodforgod.testcontainers.extensions.jdbc.JdbcConnection;
 import io.goodforgod.testcontainers.extensions.jdbc.TestcontainersPostgreSQL;
+import io.javalin.Javalin;
+import io.javalin.testtools.JavalinTest;
 import kz.hackload.ticketing.service.provider.application.*;
 import kz.hackload.ticketing.service.provider.domain.orders.*;
 import kz.hackload.ticketing.service.provider.domain.places.*;
+import kz.hackload.ticketing.service.provider.infrastructure.adapters.incoming.http.OrderResourcesJavalinHttpAdapter;
 import kz.hackload.ticketing.service.provider.infrastructure.adapters.outgoing.jdbc.JdbcTransactionManager;
 import kz.hackload.ticketing.service.provider.infrastructure.adapters.outgoing.jdbc.OrdersRepositoryPostgreSqlAdapter;
 import kz.hackload.ticketing.service.provider.infrastructure.adapters.outgoing.jdbc.PlacesRepositoryPostgreSqlAdapter;
+import okhttp3.Response;
 
 @TestcontainersPostgreSQL(mode = ContainerMode.PER_METHOD)
 public class ConfirmOrderUseCaseTest
@@ -33,7 +38,7 @@ public class ConfirmOrderUseCaseTest
     private SelectPlaceUseCase selectPlaceUseCase;
     private SubmitOrderUseCase submitOrderUseCase;
     private AddPlaceToOrderUseCase addPlaceToOrderUseCase;
-    private ConfirmOrderUseCase confirmOrderUseCase;
+    private Javalin server;
 
     @BeforeEach
     void setUp()
@@ -67,18 +72,27 @@ public class ConfirmOrderUseCaseTest
         selectPlaceUseCase = new SelectPlaceApplicationService(selectPlaceService, transactionManager, placesRepository, ordersRepository);
         submitOrderUseCase = new SubmitOrderApplicationService(transactionManager, ordersRepository);
         addPlaceToOrderUseCase = new AddPlaceToOrderApplicationService(transactionManager, ordersRepository, placesRepository, addPlaceToOrderService);
-        confirmOrderUseCase = new ConfirmOrderApplicationService(transactionManager, ordersRepository);
+        final ConfirmOrderUseCase confirmOrderUseCase = new ConfirmOrderApplicationService(transactionManager, ordersRepository);
+        final CancelOrderUseCase cancelOrderUseCase = new CancelOrderApplicationService(transactionManager, ordersRepository);
+
+        server = Javalin.create();
+        new OrderResourcesJavalinHttpAdapter(server, startOrderUseCase, submitOrderUseCase, confirmOrderUseCase, cancelOrderUseCase);
+    }
+
+    @AfterEach
+    void tearDown()
+    {
+        server.stop();
     }
 
     @Test
-    void shouldConfirmOrder() throws PlaceCanNotBeAddedToOrderException,
+    void orderConfirmed() throws PlaceCanNotBeAddedToOrderException,
             PlaceAlreadySelectedException,
             OrderNotStartedException,
             PlaceIsNotSelectedException,
             PlaceSelectedForAnotherOrderException,
             PlaceAlreadyAddedException,
-            NoPlacesAddedException,
-            OrderNotSubmittedException
+            NoPlacesAddedException
     {
         // given
         final Row row = new Row(1);
@@ -90,17 +104,20 @@ public class ConfirmOrderUseCaseTest
         addPlaceToOrderUseCase.addPlaceToOrder(placeId, orderId);
         submitOrderUseCase.submit(orderId);
 
-        // when
-        confirmOrderUseCase.confirm(orderId);
+        JavalinTest.test(server, (_, c) ->
+        {
+            // when
+            try (final Response response = c.patch("/api/partners/v1/orders/" + orderId.value() + "/confirm"))
+            {
+                // then
+                assertThat(response.isSuccessful()).isTrue();
 
-        // then
-        final Order order = transactionManager.executeInTransaction(() -> ordersRepository.findById(orderId).orElseThrow());
-        assertThat(order.places())
-                .hasSize(1)
-                .first()
-                .isEqualTo(placeId);
+                final Order actual = transactionManager.executeInTransaction(() -> ordersRepository.findById(orderId).orElseThrow());
 
-        assertThat(order.status()).isEqualTo(OrderStatus.CONFIRMED);
-        assertThat(order.uncommittedEvents()).isEmpty();
+                assertThat(actual.status()).isEqualTo(OrderStatus.CONFIRMED);
+                assertThat(actual.places()).hasSize(1).first().isEqualTo(placeId);
+                assertThat(actual.contains(placeId)).isTrue();
+            }
+        });
     }
 }

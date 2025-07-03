@@ -21,17 +21,8 @@ public final class PlacesResourceJavalinHttpAdapter
         this.selectPlaceUseCase = selectPlaceUseCase;
         this.releasePlaceUseCase = releasePlaceUseCase;
 
-        app.get("/api/public/v1/places", this::list);
         app.patch("/api/partners/v1/places/{id}/select", this::selectPlace);
         app.patch("/api/partners/v1/places/{id}/release", this::releasePlace);
-    }
-
-    private void list(final Context context)
-    {
-        context.json("""
-                []
-                """
-        );
     }
 
     private void selectPlace(final Context context)

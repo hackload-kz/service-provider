@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import javax.sql.DataSource;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -13,18 +14,23 @@ import io.goodforgod.testcontainers.extensions.ContainerMode;
 import io.goodforgod.testcontainers.extensions.jdbc.ConnectionPostgreSQL;
 import io.goodforgod.testcontainers.extensions.jdbc.JdbcConnection;
 import io.goodforgod.testcontainers.extensions.jdbc.TestcontainersPostgreSQL;
+import io.javalin.Javalin;
+import io.javalin.testtools.JavalinTest;
 import kz.hackload.ticketing.service.provider.application.*;
 import kz.hackload.ticketing.service.provider.domain.orders.*;
 import kz.hackload.ticketing.service.provider.domain.places.*;
+import kz.hackload.ticketing.service.provider.infrastructure.adapters.incoming.http.OrderResourcesJavalinHttpAdapter;
 import kz.hackload.ticketing.service.provider.infrastructure.adapters.outgoing.jdbc.JdbcTransactionManager;
 import kz.hackload.ticketing.service.provider.infrastructure.adapters.outgoing.jdbc.OrdersRepositoryPostgreSqlAdapter;
 import kz.hackload.ticketing.service.provider.infrastructure.adapters.outgoing.jdbc.PlacesRepositoryPostgreSqlAdapter;
+import okhttp3.Response;
 
 @TestcontainersPostgreSQL(mode = ContainerMode.PER_METHOD)
 public class CancelOrderUseCaseTest
 {
     @ConnectionPostgreSQL
     private JdbcConnection postgresConnection;
+    private Javalin server;
 
     private JdbcTransactionManager transactionManager;
 
@@ -35,7 +41,6 @@ public class CancelOrderUseCaseTest
     private SelectPlaceUseCase selectPlaceUseCase;
     private SubmitOrderUseCase submitOrderUseCase;
     private AddPlaceToOrderUseCase addPlaceToOrderUseCase;
-    private CancelOrderUseCase cancelOrderUseCase;
 
     @BeforeEach
     void setUp()
@@ -70,7 +75,17 @@ public class CancelOrderUseCaseTest
         selectPlaceUseCase = new SelectPlaceApplicationService(selectPlaceService, transactionManager, placesRepository, ordersRepository);
         submitOrderUseCase = new SubmitOrderApplicationService(transactionManager, ordersRepository);
         addPlaceToOrderUseCase = new AddPlaceToOrderApplicationService(transactionManager, ordersRepository, placesRepository, addPlaceToOrderService);
-        cancelOrderUseCase = new CancelOrderApplicationService(transactionManager, ordersRepository);
+        final ConfirmOrderUseCase confirmOrderUseCase = new ConfirmOrderApplicationService(transactionManager, ordersRepository);
+        final CancelOrderUseCase cancelOrderUseCase = new CancelOrderApplicationService(transactionManager, ordersRepository);
+
+        server = Javalin.create();
+        new OrderResourcesJavalinHttpAdapter(server, startOrderUseCase, submitOrderUseCase, confirmOrderUseCase, cancelOrderUseCase);
+    }
+
+    @AfterEach
+    void tearDown()
+    {
+        server.stop();
     }
 
     @Test
@@ -80,8 +95,7 @@ public class CancelOrderUseCaseTest
             PlaceIsNotSelectedException,
             PlaceSelectedForAnotherOrderException,
             PlaceAlreadyAddedException,
-            NoPlacesAddedException,
-            OrderAlreadyCancelledException
+            NoPlacesAddedException
     {
         // given
         final Row row = new Row(1);
@@ -93,13 +107,20 @@ public class CancelOrderUseCaseTest
         addPlaceToOrderUseCase.addPlaceToOrder(placeId, orderId);
         submitOrderUseCase.submit(orderId);
 
-        // when
-        cancelOrderUseCase.cancel(orderId);
+        JavalinTest.test(server, (_, c) ->
+        {
+            // when
+            try (final Response response = c.patch("/api/partners/v1/orders/" + orderId.value() + "/cancel"))
+            {
+                // then
+                assertThat(response.isSuccessful()).isTrue();
 
-        // then
-        final Order order = transactionManager.executeInTransaction(() -> ordersRepository.findById(orderId).orElseThrow());
-        assertThat(order.places()).isEmpty();
-        assertThat(order.status()).isEqualTo(OrderStatus.CANCELLED);
-        assertThat(order.uncommittedEvents()).isEmpty();
+                final Order actual = transactionManager.executeInTransaction(() -> ordersRepository.findById(orderId).orElseThrow());
+
+                assertThat(actual.status()).isEqualTo(OrderStatus.CANCELLED);
+                assertThat(actual.places()).isEmpty();
+                assertThat(actual.contains(placeId)).isFalse();
+            }
+        });
     }
 }
