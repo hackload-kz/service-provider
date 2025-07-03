@@ -2,20 +2,26 @@ package kz.hackload.ticketing.service.provider.infrastructure;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import javax.sql.DataSource;
-
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
+
+import javax.sql.DataSource;
+
 import io.goodforgod.testcontainers.extensions.ContainerMode;
 import io.goodforgod.testcontainers.extensions.jdbc.ConnectionPostgreSQL;
 import io.goodforgod.testcontainers.extensions.jdbc.JdbcConnection;
 import io.goodforgod.testcontainers.extensions.jdbc.TestcontainersPostgreSQL;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
 import kz.hackload.ticketing.service.provider.application.CreatePlaceApplicationService;
 import kz.hackload.ticketing.service.provider.application.CreatePlaceUseCase;
-import kz.hackload.ticketing.service.provider.domain.places.*;
+import kz.hackload.ticketing.service.provider.domain.places.Place;
+import kz.hackload.ticketing.service.provider.domain.places.PlaceId;
+import kz.hackload.ticketing.service.provider.domain.places.PlacesRepository;
+import kz.hackload.ticketing.service.provider.domain.places.Row;
+import kz.hackload.ticketing.service.provider.domain.places.Seat;
 import kz.hackload.ticketing.service.provider.infrastructure.adapters.outgoing.jdbc.JdbcTransactionManager;
 import kz.hackload.ticketing.service.provider.infrastructure.adapters.outgoing.jdbc.PlacesRepositoryPostgreSqlAdapter;
 

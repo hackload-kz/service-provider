@@ -7,7 +7,15 @@ import org.junit.jupiter.api.Test;
 
 import kz.hackload.ticketing.service.provider.domain.OrdersRepositoryInMemoryAdapter;
 import kz.hackload.ticketing.service.provider.domain.PlacesRepositoryInMemoryAdapter;
-import kz.hackload.ticketing.service.provider.domain.orders.*;
+import kz.hackload.ticketing.service.provider.domain.orders.AddPlaceToOrderService;
+import kz.hackload.ticketing.service.provider.domain.orders.NoPlacesAddedException;
+import kz.hackload.ticketing.service.provider.domain.orders.Order;
+import kz.hackload.ticketing.service.provider.domain.orders.OrderId;
+import kz.hackload.ticketing.service.provider.domain.orders.OrderNotStartedException;
+import kz.hackload.ticketing.service.provider.domain.orders.OrdersRepository;
+import kz.hackload.ticketing.service.provider.domain.orders.PlaceAlreadyAddedException;
+import kz.hackload.ticketing.service.provider.domain.orders.PlaceIsNotSelectedException;
+import kz.hackload.ticketing.service.provider.domain.orders.PlaceSelectedForAnotherOrderException;
 
 public class SelectPlaceServiceTest
 {

@@ -1,15 +1,28 @@
 package kz.hackload.ticketing.service.provider.infrastructure.adapters.outgoing.jdbc;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import kz.hackload.ticketing.service.provider.domain.places.*;
 import org.postgresql.util.PGobject;
+
+import kz.hackload.ticketing.service.provider.domain.places.Place;
+import kz.hackload.ticketing.service.provider.domain.places.PlaceCreatedEvent;
+import kz.hackload.ticketing.service.provider.domain.places.PlaceDomainEvent;
+import kz.hackload.ticketing.service.provider.domain.places.PlaceId;
+import kz.hackload.ticketing.service.provider.domain.places.PlaceReleasedEvent;
+import kz.hackload.ticketing.service.provider.domain.places.PlaceSelectedEvent;
+import kz.hackload.ticketing.service.provider.domain.places.PlacesRepository;
 
 public final class PlacesRepositoryPostgreSqlAdapter implements PlacesRepository
 {
@@ -80,7 +93,9 @@ public final class PlacesRepositoryPostgreSqlAdapter implements PlacesRepository
     @Override
     public Optional<Place> findById(final PlaceId placeId)
     {
-        record ResultSetRow(String id, String eventType, long revision, String data) {}
+        record ResultSetRow(String id, String eventType, long revision, String data)
+        {
+        }
 
         final ArrayList<ResultSetRow> rsRows = new ArrayList<>();
 

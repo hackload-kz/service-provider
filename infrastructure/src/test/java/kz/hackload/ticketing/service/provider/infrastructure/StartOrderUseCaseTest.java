@@ -2,24 +2,38 @@ package kz.hackload.ticketing.service.provider.infrastructure;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import com.zaxxer.hikari.HikariConfig;
+import com.zaxxer.hikari.HikariDataSource;
+
 import javax.sql.DataSource;
 
 import java.util.UUID;
+
+import io.goodforgod.testcontainers.extensions.ContainerMode;
+import io.goodforgod.testcontainers.extensions.jdbc.ConnectionPostgreSQL;
+import io.goodforgod.testcontainers.extensions.jdbc.JdbcConnection;
+import io.goodforgod.testcontainers.extensions.jdbc.TestcontainersPostgreSQL;
+
+import io.javalin.Javalin;
+import io.javalin.testtools.JavalinTest;
+
+import okhttp3.Response;
+import okhttp3.ResponseBody;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.zaxxer.hikari.HikariConfig;
-import com.zaxxer.hikari.HikariDataSource;
-import io.goodforgod.testcontainers.extensions.ContainerMode;
-import io.goodforgod.testcontainers.extensions.jdbc.ConnectionPostgreSQL;
-import io.goodforgod.testcontainers.extensions.jdbc.JdbcConnection;
-import io.goodforgod.testcontainers.extensions.jdbc.TestcontainersPostgreSQL;
-import io.javalin.Javalin;
-import io.javalin.testtools.JavalinTest;
-import kz.hackload.ticketing.service.provider.application.*;
+import kz.hackload.ticketing.service.provider.application.CancelOrderApplicationService;
+import kz.hackload.ticketing.service.provider.application.CancelOrderUseCase;
+import kz.hackload.ticketing.service.provider.application.ConfirmOrderApplicationService;
+import kz.hackload.ticketing.service.provider.application.ConfirmOrderUseCase;
+import kz.hackload.ticketing.service.provider.application.StartOrderApplicationService;
+import kz.hackload.ticketing.service.provider.application.StartOrderUseCase;
+import kz.hackload.ticketing.service.provider.application.SubmitOrderApplicationService;
+import kz.hackload.ticketing.service.provider.application.SubmitOrderUseCase;
 import kz.hackload.ticketing.service.provider.domain.orders.Order;
 import kz.hackload.ticketing.service.provider.domain.orders.OrderId;
 import kz.hackload.ticketing.service.provider.domain.orders.OrderStatus;
@@ -27,8 +41,6 @@ import kz.hackload.ticketing.service.provider.domain.orders.OrdersRepository;
 import kz.hackload.ticketing.service.provider.infrastructure.adapters.incoming.http.OrderResourcesJavalinHttpAdapter;
 import kz.hackload.ticketing.service.provider.infrastructure.adapters.outgoing.jdbc.JdbcTransactionManager;
 import kz.hackload.ticketing.service.provider.infrastructure.adapters.outgoing.jdbc.OrdersRepositoryPostgreSqlAdapter;
-import okhttp3.Response;
-import okhttp3.ResponseBody;
 
 @TestcontainersPostgreSQL(mode = ContainerMode.PER_METHOD)
 public class StartOrderUseCaseTest

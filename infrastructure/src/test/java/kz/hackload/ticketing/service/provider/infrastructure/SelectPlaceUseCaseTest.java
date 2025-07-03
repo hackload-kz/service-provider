@@ -2,31 +2,47 @@ package kz.hackload.ticketing.service.provider.infrastructure;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.zaxxer.hikari.HikariConfig;
+import com.zaxxer.hikari.HikariDataSource;
+
 import javax.sql.DataSource;
 
 import java.util.Optional;
 
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-
-import com.zaxxer.hikari.HikariConfig;
-import com.zaxxer.hikari.HikariDataSource;
 import io.goodforgod.testcontainers.extensions.ContainerMode;
 import io.goodforgod.testcontainers.extensions.jdbc.ConnectionPostgreSQL;
 import io.goodforgod.testcontainers.extensions.jdbc.JdbcConnection;
 import io.goodforgod.testcontainers.extensions.jdbc.TestcontainersPostgreSQL;
+
 import io.javalin.Javalin;
 import io.javalin.testtools.JavalinTest;
-import kz.hackload.ticketing.service.provider.application.*;
+
+import okhttp3.Response;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+import kz.hackload.ticketing.service.provider.application.CreatePlaceApplicationService;
+import kz.hackload.ticketing.service.provider.application.CreatePlaceUseCase;
+import kz.hackload.ticketing.service.provider.application.ReleasePlaceApplicationService;
+import kz.hackload.ticketing.service.provider.application.ReleasePlaceUseCase;
+import kz.hackload.ticketing.service.provider.application.SelectPlaceApplicationService;
+import kz.hackload.ticketing.service.provider.application.SelectPlaceUseCase;
+import kz.hackload.ticketing.service.provider.application.StartOrderApplicationService;
+import kz.hackload.ticketing.service.provider.application.StartOrderUseCase;
 import kz.hackload.ticketing.service.provider.domain.orders.OrderId;
 import kz.hackload.ticketing.service.provider.domain.orders.OrdersRepository;
 import kz.hackload.ticketing.service.provider.domain.orders.ReleasePlaceService;
-import kz.hackload.ticketing.service.provider.domain.places.*;
+import kz.hackload.ticketing.service.provider.domain.places.Place;
+import kz.hackload.ticketing.service.provider.domain.places.PlaceId;
+import kz.hackload.ticketing.service.provider.domain.places.PlacesRepository;
+import kz.hackload.ticketing.service.provider.domain.places.Row;
+import kz.hackload.ticketing.service.provider.domain.places.Seat;
+import kz.hackload.ticketing.service.provider.domain.places.SelectPlaceService;
 import kz.hackload.ticketing.service.provider.infrastructure.adapters.incoming.http.PlacesResourceJavalinHttpAdapter;
 import kz.hackload.ticketing.service.provider.infrastructure.adapters.outgoing.jdbc.JdbcTransactionManager;
 import kz.hackload.ticketing.service.provider.infrastructure.adapters.outgoing.jdbc.OrdersRepositoryPostgreSqlAdapter;
 import kz.hackload.ticketing.service.provider.infrastructure.adapters.outgoing.jdbc.PlacesRepositoryPostgreSqlAdapter;
-import okhttp3.Response;
 
 @TestcontainersPostgreSQL(mode = ContainerMode.PER_METHOD)
 public class SelectPlaceUseCaseTest
