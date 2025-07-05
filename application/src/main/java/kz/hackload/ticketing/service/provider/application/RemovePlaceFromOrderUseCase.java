@@ -3,10 +3,9 @@ package kz.hackload.ticketing.service.provider.application;
 import kz.hackload.ticketing.service.provider.domain.orders.OrderNotStartedException;
 import kz.hackload.ticketing.service.provider.domain.orders.PlaceNotAddedException;
 import kz.hackload.ticketing.service.provider.domain.orders.PlaceSelectedForAnotherOrderException;
-import kz.hackload.ticketing.service.provider.domain.places.PlaceAlreadyReleasedException;
 import kz.hackload.ticketing.service.provider.domain.places.PlaceId;
 
-public interface ReleasePlaceUseCase
+public interface RemovePlaceFromOrderUseCase
 {
-    void releasePlace(final PlaceId placeId) throws OrderNotStartedException, PlaceNotAddedException, PlaceSelectedForAnotherOrderException, PlaceAlreadyReleasedException;
+    void removePlaceFromOrder(final PlaceId placeId) throws OrderNotStartedException, PlaceNotAddedException, PlaceSelectedForAnotherOrderException;
 }

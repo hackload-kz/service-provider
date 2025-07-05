@@ -4,23 +4,23 @@ import io.javalin.Javalin;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 
-import kz.hackload.ticketing.service.provider.application.ReleasePlaceUseCase;
+import kz.hackload.ticketing.service.provider.application.RemovePlaceFromOrderUseCase;
 import kz.hackload.ticketing.service.provider.application.SelectPlaceUseCase;
 import kz.hackload.ticketing.service.provider.domain.orders.OrderNotStartedException;
 import kz.hackload.ticketing.service.provider.domain.orders.PlaceNotAddedException;
-import kz.hackload.ticketing.service.provider.domain.places.PlaceAlreadyReleasedException;
+import kz.hackload.ticketing.service.provider.domain.orders.PlaceSelectedForAnotherOrderException;
 import kz.hackload.ticketing.service.provider.domain.places.PlaceAlreadySelectedException;
 import kz.hackload.ticketing.service.provider.domain.places.PlaceCanNotBeAddedToOrderException;
 
 public final class PlacesResourceJavalinHttpAdapter
 {
     private final SelectPlaceUseCase selectPlaceUseCase;
-    private final ReleasePlaceUseCase releasePlaceUseCase;
+    private final RemovePlaceFromOrderUseCase removePlaceFromOrderUseCase;
 
-    public PlacesResourceJavalinHttpAdapter(final Javalin app, final SelectPlaceUseCase selectPlaceUseCase, final ReleasePlaceUseCase releasePlaceUseCase)
+    public PlacesResourceJavalinHttpAdapter(final Javalin app, final SelectPlaceUseCase selectPlaceUseCase, final RemovePlaceFromOrderUseCase removePlaceFromOrderUseCase)
     {
         this.selectPlaceUseCase = selectPlaceUseCase;
-        this.releasePlaceUseCase = releasePlaceUseCase;
+        this.removePlaceFromOrderUseCase = removePlaceFromOrderUseCase;
 
         app.patch("/api/partners/v1/places/{id}/select", this::selectPlace);
         app.patch("/api/partners/v1/places/{id}/release", this::releasePlace);
@@ -51,16 +51,20 @@ public final class PlacesResourceJavalinHttpAdapter
 
         try
         {
-            releasePlaceUseCase.releasePlace(releasePlaceDto.placeId());
+            removePlaceFromOrderUseCase.removePlaceFromOrder(releasePlaceDto.placeId());
             context.status(HttpStatus.NO_CONTENT);
         }
-        catch (final OrderNotStartedException | PlaceNotAddedException | PlaceAlreadyReleasedException e)
+        catch (final OrderNotStartedException | PlaceNotAddedException e)
         {
             context.status(HttpStatus.CONFLICT);
         }
         catch (final RuntimeException e)
         {
             context.status(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+        catch (final PlaceSelectedForAnotherOrderException e)
+        {
+            context.status(HttpStatus.FORBIDDEN);
         }
     }
 }

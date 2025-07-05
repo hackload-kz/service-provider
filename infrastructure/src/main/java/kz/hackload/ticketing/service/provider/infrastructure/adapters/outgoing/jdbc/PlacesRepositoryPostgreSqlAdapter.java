@@ -7,6 +7,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Types;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -44,7 +45,7 @@ public final class PlacesRepositoryPostgreSqlAdapter implements PlacesRepository
     @Override
     public void save(final Place place)
     {
-        final String id = place.id().value().toString();
+        final UUID id = place.id().value();
         final List<PlaceDomainEvent> uncommittedEvents = place.uncommittedEvents();
         final Map<PlaceDomainEvent, String> uncommittedEventToJsonMap = new HashMap<>(uncommittedEvents.size());
         for (final PlaceDomainEvent event : uncommittedEvents)
@@ -68,7 +69,7 @@ public final class PlacesRepositoryPostgreSqlAdapter implements PlacesRepository
         {
             for (final var entry : uncommittedEventToJsonMap.entrySet())
             {
-                statement.setString(1, id);
+                statement.setObject(1, id, Types.OTHER);
                 statement.setString(2, entry.getKey().type());
                 statement.setLong(3, currentRevision++);
 
@@ -81,7 +82,6 @@ public final class PlacesRepositoryPostgreSqlAdapter implements PlacesRepository
             }
 
             statement.execute();
-            connection.commit();
         }
         catch (final SQLException e)
         {
@@ -93,7 +93,7 @@ public final class PlacesRepositoryPostgreSqlAdapter implements PlacesRepository
     @Override
     public Optional<Place> findById(final PlaceId placeId)
     {
-        record ResultSetRow(String id, String eventType, long revision, String data)
+        record ResultSetRow(UUID id, String eventType, long revision, String data)
         {
         }
 
@@ -102,14 +102,18 @@ public final class PlacesRepositoryPostgreSqlAdapter implements PlacesRepository
         final Connection connection = transactionManager.currentConnection();
         try (final PreparedStatement statement = connection.prepareStatement("SELECT * FROM events WHERE aggregate_id = ?"))
         {
-            statement.setString(1, placeId.value().toString());
+            final PGobject idParamPgObject = new PGobject();
+            idParamPgObject.setValue(placeId.value().toString());
+            idParamPgObject.setType("uuid");
+
+            statement.setObject(1, idParamPgObject);
             try (final ResultSet rs = statement.executeQuery())
             {
                 if (rs.next())
                 {
                     do
                     {
-                        final String id = rs.getString("aggregate_id");
+                        final UUID id = (UUID) rs.getObject("aggregate_id");
                         final String eventType = rs.getString("event_type");
                         final long revision = rs.getLong("revision");
 

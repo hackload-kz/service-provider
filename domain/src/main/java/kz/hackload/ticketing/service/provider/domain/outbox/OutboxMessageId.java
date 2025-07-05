@@ -1,5 +1,7 @@
 package kz.hackload.ticketing.service.provider.domain.outbox;
 
-public record OutboxMessageId(long value)
+import java.util.UUID;
+
+public record OutboxMessageId(UUID value)
 {
 }

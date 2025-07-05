@@ -45,6 +45,7 @@ import kz.hackload.ticketing.service.provider.domain.orders.OrdersRepository;
 import kz.hackload.ticketing.service.provider.domain.orders.PlaceAlreadyAddedException;
 import kz.hackload.ticketing.service.provider.domain.orders.PlaceIsNotSelectedException;
 import kz.hackload.ticketing.service.provider.domain.orders.PlaceSelectedForAnotherOrderException;
+import kz.hackload.ticketing.service.provider.domain.outbox.OutboxRepository;
 import kz.hackload.ticketing.service.provider.domain.places.PlaceAlreadySelectedException;
 import kz.hackload.ticketing.service.provider.domain.places.PlaceCanNotBeAddedToOrderException;
 import kz.hackload.ticketing.service.provider.domain.places.PlaceId;
@@ -55,10 +56,11 @@ import kz.hackload.ticketing.service.provider.domain.places.SelectPlaceService;
 import kz.hackload.ticketing.service.provider.infrastructure.adapters.incoming.http.OrderResourcesJavalinHttpAdapter;
 import kz.hackload.ticketing.service.provider.infrastructure.adapters.outgoing.jdbc.JdbcTransactionManager;
 import kz.hackload.ticketing.service.provider.infrastructure.adapters.outgoing.jdbc.OrdersRepositoryPostgreSqlAdapter;
+import kz.hackload.ticketing.service.provider.infrastructure.adapters.outgoing.jdbc.OutboxRepositoryPostgreSqlAdapter;
 import kz.hackload.ticketing.service.provider.infrastructure.adapters.outgoing.jdbc.PlacesRepositoryPostgreSqlAdapter;
 
 @TestcontainersPostgreSQL(mode = ContainerMode.PER_METHOD)
-public class CancelOrderUseCaseTest
+public class CancelOrderUseCaseTest extends AbstractIntegrationTest
 {
     @ConnectionPostgreSQL
     private JdbcConnection postgresConnection;
@@ -80,11 +82,20 @@ public class CancelOrderUseCaseTest
         postgresConnection.execute("""
                 create table public.events
                 (
-                    aggregate_id varchar(255) not null,
+                    aggregate_id uuid not null,
                     revision     bigint       not null,
                     event_type   varchar(255),
                     data         jsonb,
                     primary key (aggregate_id, revision)
+                );
+
+                create table public.outbox
+                (
+                    id              uuid primary key,
+                    topic           varchar(255),
+                    aggregate_id    varchar(255),
+                    aggregate_type  varchar(255),
+                    payload         jsonb
                 );
                 """);
 
@@ -97,6 +108,7 @@ public class CancelOrderUseCaseTest
 
         transactionManager = new JdbcTransactionManager(dataSource);
         ordersRepository = new OrdersRepositoryPostgreSqlAdapter(transactionManager);
+        OutboxRepository outboxRepository = new OutboxRepositoryPostgreSqlAdapter(transactionManager);
 
         final PlacesRepository placesRepository = new PlacesRepositoryPostgreSqlAdapter(transactionManager);
         final SelectPlaceService selectPlaceService = new SelectPlaceService();
@@ -104,7 +116,7 @@ public class CancelOrderUseCaseTest
 
         createPlaceUseCase = new CreatePlaceApplicationService(transactionManager, placesRepository);
         startOrderUseCase = new StartOrderApplicationService(transactionManager, ordersRepository);
-        selectPlaceUseCase = new SelectPlaceApplicationService(selectPlaceService, transactionManager, placesRepository, ordersRepository);
+        selectPlaceUseCase = new SelectPlaceApplicationService(selectPlaceService, transactionManager, jsonMapper, placesRepository, ordersRepository, outboxRepository);
         submitOrderUseCase = new SubmitOrderApplicationService(transactionManager, ordersRepository);
         addPlaceToOrderUseCase = new AddPlaceToOrderApplicationService(transactionManager, ordersRepository, placesRepository, addPlaceToOrderService);
         final ConfirmOrderUseCase confirmOrderUseCase = new ConfirmOrderApplicationService(transactionManager, ordersRepository);

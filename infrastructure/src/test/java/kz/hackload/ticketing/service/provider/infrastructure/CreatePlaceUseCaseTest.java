@@ -26,7 +26,7 @@ import kz.hackload.ticketing.service.provider.infrastructure.adapters.outgoing.j
 import kz.hackload.ticketing.service.provider.infrastructure.adapters.outgoing.jdbc.PlacesRepositoryPostgreSqlAdapter;
 
 @TestcontainersPostgreSQL(mode = ContainerMode.PER_METHOD)
-public class CreatePlaceUseCaseTest
+public class CreatePlaceUseCaseTest extends AbstractIntegrationTest
 {
     @ConnectionPostgreSQL
     private JdbcConnection postgresConnection;
@@ -41,11 +41,20 @@ public class CreatePlaceUseCaseTest
         postgresConnection.execute("""
                 create table public.events
                 (
-                    aggregate_id varchar(255) not null,
+                    aggregate_id uuid not null,
                     revision     bigint       not null,
                     event_type   varchar(255),
                     data         jsonb,
                     primary key (aggregate_id, revision)
+                );
+
+                create table public.outbox
+                (
+                    id              uuid primary key,
+                    topic           varchar(255),
+                    aggregate_id    varchar(255),
+                    aggregate_type  varchar(255),
+                    payload         jsonb
                 );
                 """);
 

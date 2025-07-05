@@ -7,10 +7,12 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Types;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -47,26 +49,30 @@ public final class OrdersRepositoryPostgreSqlAdapter implements OrdersRepository
     @Override
     public Optional<Order> findById(final OrderId orderId)
     {
-        record ResultSetRow(String id, String eventType, long revision, String data) {}
+        record ResultSetRow(UUID id, String eventType, long revision, String data) {}
 
         final ArrayList<ResultSetRow> rsRows = new ArrayList<>();
 
         final Connection connection = transactionManager.currentConnection();
         try (final PreparedStatement statement = connection.prepareStatement("SELECT * FROM events WHERE aggregate_id = ?"))
         {
-            statement.setString(1, orderId.value().toString());
+            final PGobject idParamPgObject = new PGobject();
+            idParamPgObject.setValue(orderId.value().toString());
+            idParamPgObject.setType("uuid");
+
+            statement.setObject(1, idParamPgObject);
             try (final ResultSet rs = statement.executeQuery())
             {
                 if (rs.next())
                 {
                     do
                     {
-                        final String id = rs.getString("aggregate_id");
+                        final UUID id = (UUID) rs.getObject("aggregate_id");
                         final String eventType = rs.getString("event_type");
                         final long revision = rs.getLong("revision");
 
                         final PGobject pGobject = (PGobject) rs.getObject("data");
-                        final String data = pGobject.getValue();
+                        final String data = Objects.requireNonNull(pGobject.getValue());
 
                         rsRows.add(new ResultSetRow(id, eventType, revision, data));
                     }
@@ -116,7 +122,7 @@ public final class OrdersRepositoryPostgreSqlAdapter implements OrdersRepository
     @Override
     public void save(final Order order)
     {
-        final String id = order.id().value().toString();
+        final UUID id = order.id().value();
         final List<OrderDomainEvent> uncommittedEvents = order.uncommittedEvents();
         final Map<OrderDomainEvent, String> uncommittedEventToJsonMap = new HashMap<>(uncommittedEvents.size());
         for (final OrderDomainEvent event : uncommittedEvents)
@@ -141,7 +147,11 @@ public final class OrdersRepositoryPostgreSqlAdapter implements OrdersRepository
         {
             for (final var entry : uncommittedEventToJsonMap.entrySet())
             {
-                statement.setString(1, id);
+                final PGobject idObject = new PGobject();
+                idObject.setValue(id.toString());
+                idObject.setType("uuid");
+
+                statement.setObject(1, idObject);
                 statement.setString(2, entry.getKey().type());
                 statement.setLong(3, currentRevision++);
 
