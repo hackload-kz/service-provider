@@ -2,134 +2,34 @@ package kz.hackload.ticketing.service.provider.infrastructure;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.zaxxer.hikari.HikariConfig;
-import com.zaxxer.hikari.HikariDataSource;
-
-import javax.sql.DataSource;
-
-import io.goodforgod.testcontainers.extensions.ContainerMode;
-import io.goodforgod.testcontainers.extensions.jdbc.ConnectionPostgreSQL;
-import io.goodforgod.testcontainers.extensions.jdbc.JdbcConnection;
-import io.goodforgod.testcontainers.extensions.jdbc.TestcontainersPostgreSQL;
-
-import io.javalin.Javalin;
 import io.javalin.testtools.JavalinTest;
 
 import okhttp3.Response;
 
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import kz.hackload.ticketing.service.provider.application.AddPlaceToOrderApplicationService;
-import kz.hackload.ticketing.service.provider.application.AddPlaceToOrderUseCase;
-import kz.hackload.ticketing.service.provider.application.CancelOrderApplicationService;
-import kz.hackload.ticketing.service.provider.application.CancelOrderUseCase;
-import kz.hackload.ticketing.service.provider.application.ConfirmOrderApplicationService;
-import kz.hackload.ticketing.service.provider.application.ConfirmOrderUseCase;
-import kz.hackload.ticketing.service.provider.application.CreatePlaceApplicationService;
-import kz.hackload.ticketing.service.provider.application.CreatePlaceUseCase;
-import kz.hackload.ticketing.service.provider.application.SelectPlaceApplicationService;
-import kz.hackload.ticketing.service.provider.application.SelectPlaceUseCase;
-import kz.hackload.ticketing.service.provider.application.StartOrderApplicationService;
-import kz.hackload.ticketing.service.provider.application.StartOrderUseCase;
-import kz.hackload.ticketing.service.provider.application.SubmitOrderApplicationService;
-import kz.hackload.ticketing.service.provider.application.SubmitOrderUseCase;
-import kz.hackload.ticketing.service.provider.domain.orders.AddPlaceToOrderService;
 import kz.hackload.ticketing.service.provider.domain.orders.NoPlacesAddedException;
 import kz.hackload.ticketing.service.provider.domain.orders.Order;
 import kz.hackload.ticketing.service.provider.domain.orders.OrderId;
 import kz.hackload.ticketing.service.provider.domain.orders.OrderNotStartedException;
 import kz.hackload.ticketing.service.provider.domain.orders.OrderStatus;
-import kz.hackload.ticketing.service.provider.domain.orders.OrdersRepository;
 import kz.hackload.ticketing.service.provider.domain.orders.PlaceAlreadyAddedException;
 import kz.hackload.ticketing.service.provider.domain.orders.PlaceIsNotSelectedException;
 import kz.hackload.ticketing.service.provider.domain.orders.PlaceSelectedForAnotherOrderException;
-import kz.hackload.ticketing.service.provider.domain.outbox.OutboxRepository;
 import kz.hackload.ticketing.service.provider.domain.places.PlaceAlreadySelectedException;
 import kz.hackload.ticketing.service.provider.domain.places.PlaceCanNotBeAddedToOrderException;
 import kz.hackload.ticketing.service.provider.domain.places.PlaceId;
-import kz.hackload.ticketing.service.provider.domain.places.PlacesRepository;
 import kz.hackload.ticketing.service.provider.domain.places.Row;
 import kz.hackload.ticketing.service.provider.domain.places.Seat;
-import kz.hackload.ticketing.service.provider.domain.places.SelectPlaceService;
 import kz.hackload.ticketing.service.provider.infrastructure.adapters.incoming.http.OrderResourcesJavalinHttpAdapter;
-import kz.hackload.ticketing.service.provider.infrastructure.adapters.outgoing.jdbc.JdbcTransactionManager;
-import kz.hackload.ticketing.service.provider.infrastructure.adapters.outgoing.jdbc.OrdersRepositoryPostgreSqlAdapter;
-import kz.hackload.ticketing.service.provider.infrastructure.adapters.outgoing.jdbc.OutboxRepositoryPostgreSqlAdapter;
-import kz.hackload.ticketing.service.provider.infrastructure.adapters.outgoing.jdbc.PlacesRepositoryPostgreSqlAdapter;
 
-@TestcontainersPostgreSQL(mode = ContainerMode.PER_METHOD)
 public class CancelOrderUseCaseTest extends AbstractIntegrationTest
 {
-    @ConnectionPostgreSQL
-    private JdbcConnection postgresConnection;
-    private Javalin server;
-
-    private JdbcTransactionManager transactionManager;
-
-    private OrdersRepository ordersRepository;
-
-    private CreatePlaceUseCase createPlaceUseCase;
-    private StartOrderUseCase startOrderUseCase;
-    private SelectPlaceUseCase selectPlaceUseCase;
-    private SubmitOrderUseCase submitOrderUseCase;
-    private AddPlaceToOrderUseCase addPlaceToOrderUseCase;
-
     @BeforeEach
     void setUp()
     {
-        postgresConnection.execute("""
-                create table public.events
-                (
-                    aggregate_id uuid not null,
-                    revision     bigint       not null,
-                    event_type   varchar(255),
-                    data         jsonb,
-                    primary key (aggregate_id, revision)
-                );
-
-                create table public.outbox
-                (
-                    id              uuid primary key,
-                    topic           varchar(255),
-                    aggregate_id    varchar(255),
-                    aggregate_type  varchar(255),
-                    payload         jsonb
-                );
-                """);
-
-        final HikariConfig hikariConfig = new HikariConfig();
-        hikariConfig.setJdbcUrl(postgresConnection.params().jdbcUrl());
-        hikariConfig.setUsername(postgresConnection.params().username());
-        hikariConfig.setPassword(postgresConnection.params().password());
-
-        final DataSource dataSource = new HikariDataSource(hikariConfig);
-
-        transactionManager = new JdbcTransactionManager(dataSource);
-        ordersRepository = new OrdersRepositoryPostgreSqlAdapter(transactionManager);
-        OutboxRepository outboxRepository = new OutboxRepositoryPostgreSqlAdapter(transactionManager);
-
-        final PlacesRepository placesRepository = new PlacesRepositoryPostgreSqlAdapter(transactionManager);
-        final SelectPlaceService selectPlaceService = new SelectPlaceService();
-        final AddPlaceToOrderService addPlaceToOrderService = new AddPlaceToOrderService();
-
-        createPlaceUseCase = new CreatePlaceApplicationService(transactionManager, placesRepository);
-        startOrderUseCase = new StartOrderApplicationService(transactionManager, ordersRepository);
-        selectPlaceUseCase = new SelectPlaceApplicationService(selectPlaceService, transactionManager, jsonMapper, placesRepository, ordersRepository, outboxRepository);
-        submitOrderUseCase = new SubmitOrderApplicationService(transactionManager, ordersRepository);
-        addPlaceToOrderUseCase = new AddPlaceToOrderApplicationService(transactionManager, ordersRepository, placesRepository, addPlaceToOrderService);
-        final ConfirmOrderUseCase confirmOrderUseCase = new ConfirmOrderApplicationService(transactionManager, ordersRepository);
-        final CancelOrderUseCase cancelOrderUseCase = new CancelOrderApplicationService(transactionManager, ordersRepository);
-
-        server = Javalin.create();
         new OrderResourcesJavalinHttpAdapter(server, startOrderUseCase, submitOrderUseCase, confirmOrderUseCase, cancelOrderUseCase);
-    }
-
-    @AfterEach
-    void tearDown()
-    {
-        server.stop();
     }
 
     @Test
