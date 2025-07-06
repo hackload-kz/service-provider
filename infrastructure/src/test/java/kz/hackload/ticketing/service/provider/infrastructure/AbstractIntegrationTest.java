@@ -101,6 +101,7 @@ public abstract class AbstractIntegrationTest
     @BeforeEach
     public void globalSetUp()
     {
+        // TODO: somehow use db-migrations
         postgresConnection.execute("""
                 create table public.events
                 (
