@@ -5,6 +5,7 @@ import com.zaxxer.hikari.HikariDataSource;
 
 import javax.sql.DataSource;
 
+import java.time.Duration;
 import java.util.Properties;
 import java.util.UUID;
 
@@ -14,6 +15,9 @@ import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerConfig;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import kz.hackload.ticketing.service.provider.application.AddPlaceToOrderApplicationService;
 import kz.hackload.ticketing.service.provider.application.AddPlaceToOrderUseCase;
@@ -50,8 +54,12 @@ import kz.hackload.ticketing.service.provider.infrastructure.adapters.outgoing.j
 
 public final class ApplicationRunner
 {
+    private static final Logger LOG = LoggerFactory.getLogger(ApplicationRunner.class);
+
     public static void main(String[] args)
     {
+        final long startNano = System.nanoTime();
+
         final HikariConfig hikariConfig = new HikariConfig();
         hikariConfig.setJdbcUrl("jdbc:postgresql://localhost:5432/hackload_ticketing_sp");
         hikariConfig.setUsername("hackload_ticketing_sp");
@@ -80,7 +88,7 @@ public final class ApplicationRunner
         final AddPlaceToOrderUseCase addPlaceToOrderUseCase = new AddPlaceToOrderApplicationService(jdbcTransactionManager, ordersRepository, placesRepository, addPlaceToOrderService);
 
         final Properties properties = new Properties();
-        properties.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, "<BOOTSTRAPS_SERVERS>");
+        properties.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, "127.0.0.1:9092,127.0.0.1:9095,127.0.0.1:9098");
         properties.put(ProducerConfig.ACKS_CONFIG, "all");
         properties.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringSerializer");
         properties.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringSerializer");
@@ -108,5 +116,22 @@ public final class ApplicationRunner
         final Javalin httpServer = Javalin.create();
         new OrderResourcesJavalinHttpAdapter(httpServer, startOrderUseCase, submitOrderUseCase, confirmOrderUseCase, cancelOrderUseCase);
         new PlacesResourceJavalinHttpAdapter(httpServer, selectPlaceUseCase, removePlaceFromOrderUseCase);
+
+        httpServer.start();
+
+        final Runnable shutdownActions = () ->
+        {
+            LOG.info("Shutdown initiated");
+            outboxScheduler.stop();
+
+            orderEventsKafkaMessagesListener.stop();
+            placeEventsKafkaMessagesListener.stop();
+            LOG.info("Shutdown completed");
+        };
+
+        Runtime.getRuntime().addShutdownHook(new Thread(shutdownActions));
+
+        final long stopNano = System.nanoTime();
+        LOG.info("Application started in {} ms", Duration.ofNanos(stopNano - startNano).toMillis());
     }
 }

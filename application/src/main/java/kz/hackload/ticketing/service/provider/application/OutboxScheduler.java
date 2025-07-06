@@ -3,7 +3,9 @@ package kz.hackload.ticketing.service.provider.application;
 import java.util.Optional;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,7 +17,16 @@ public final class OutboxScheduler
 {
     private static final Logger LOG = LoggerFactory.getLogger(OutboxScheduler.class);
 
-    private final ScheduledExecutorService scheduler = new ScheduledThreadPoolExecutor(1);
+    private final ScheduledExecutorService scheduler = new ScheduledThreadPoolExecutor(1, new ThreadFactory()
+    {
+        private static final AtomicInteger THREAD_COUNTER = new AtomicInteger(0);
+
+        @Override
+        public Thread newThread(final Runnable r)
+        {
+            return new Thread(r, "outbox-scheduler-" + THREAD_COUNTER.getAndDecrement());
+        }
+    });
 
     private final TransactionManager transactionManager;
     private final OutboxRepository outboxRepository;
@@ -32,11 +43,14 @@ public final class OutboxScheduler
 
     public void start()
     {
+        LOG.info("Starting outbox scheduler");
         scheduler.scheduleAtFixedRate(this::sendScheduledMessages, 100L, 100L, TimeUnit.MILLISECONDS);
     }
 
     public void stop()
     {
+        LOG.info("Stopping outbox scheduler");
+
         scheduler.shutdown();
 
         try
@@ -54,22 +68,31 @@ public final class OutboxScheduler
 
             Thread.currentThread().interrupt();
         }
+
+        LOG.info("Outbox scheduler is stopped");
     }
 
     public void sendScheduledMessages()
     {
-        transactionManager.executeInTransaction(() ->
+        try
         {
-            final Optional<OutboxMessage> optionalOutboxMessage = outboxRepository.nextForDelivery();
-
-            if (optionalOutboxMessage.isEmpty())
+            transactionManager.executeInTransaction(() ->
             {
-                return;
-            }
+                final Optional<OutboxMessage> optionalOutboxMessage = outboxRepository.nextForDelivery();
 
-            final OutboxMessage outboxMessage = optionalOutboxMessage.get();
-            outboxSender.send(outboxMessage.topic(), outboxMessage.aggregateId(), outboxMessage.payload());
-            outboxRepository.delete(outboxMessage.id());
-        });
+                if (optionalOutboxMessage.isEmpty())
+                {
+                    return;
+                }
+
+                final OutboxMessage outboxMessage = optionalOutboxMessage.get();
+                outboxSender.send(outboxMessage.topic(), outboxMessage.aggregateId(), outboxMessage.payload());
+                outboxRepository.delete(outboxMessage.id());
+            });
+        }
+        catch (final RuntimeException e)
+        {
+            LOG.error(e.getMessage(), e);
+        }
     }
 }
