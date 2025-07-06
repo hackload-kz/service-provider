@@ -4,32 +4,16 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.Duration;
 import java.util.Optional;
-import java.util.Properties;
-import java.util.UUID;
-
-import io.goodforgod.testcontainers.extensions.ContainerMode;
-import io.goodforgod.testcontainers.extensions.kafka.ConnectionKafka;
-import io.goodforgod.testcontainers.extensions.kafka.KafkaConnection;
-import io.goodforgod.testcontainers.extensions.kafka.TestcontainersKafka;
-import io.goodforgod.testcontainers.extensions.kafka.Topics;
 
 import io.javalin.testtools.JavalinTest;
 
 import okhttp3.Response;
 
-import org.apache.kafka.clients.consumer.ConsumerConfig;
-import org.apache.kafka.clients.consumer.KafkaConsumer;
-import org.apache.kafka.clients.producer.KafkaProducer;
-import org.apache.kafka.clients.producer.ProducerConfig;
-
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import org.testcontainers.shaded.org.awaitility.Awaitility;
 
-import kz.hackload.ticketing.service.provider.application.OutboxScheduler;
-import kz.hackload.ticketing.service.provider.application.OutboxSender;
 import kz.hackload.ticketing.service.provider.domain.orders.Order;
 import kz.hackload.ticketing.service.provider.domain.orders.OrderId;
 import kz.hackload.ticketing.service.provider.domain.places.Place;
@@ -37,53 +21,13 @@ import kz.hackload.ticketing.service.provider.domain.places.PlaceId;
 import kz.hackload.ticketing.service.provider.domain.places.Row;
 import kz.hackload.ticketing.service.provider.domain.places.Seat;
 import kz.hackload.ticketing.service.provider.infrastructure.adapters.incoming.http.PlacesResourceJavalinHttpAdapter;
-import kz.hackload.ticketing.service.provider.infrastructure.adapters.incoming.kafka.KafkaMessagesListener;
-import kz.hackload.ticketing.service.provider.infrastructure.adapters.incoming.kafka.PlaceEventsListener;
-import kz.hackload.ticketing.service.provider.infrastructure.adapters.outgoing.jdbc.OutboxSenderKafkaAdapter;
 
-@TestcontainersKafka(mode = ContainerMode.PER_RUN,
-        topics = @Topics(value = {"place-events", "order-events"}, reset = Topics.Mode.PER_METHOD)
-)
 public class SelectPlaceUseCaseTest extends AbstractIntegrationTest
 {
-    @ConnectionKafka
-    private KafkaConnection kafkaConnection;
-
-    private OutboxScheduler outboxScheduler;
-    private KafkaMessagesListener kafkaMessagesListener;
-
     @BeforeEach
     void setUp()
     {
-        final Properties properties = new Properties();
-        properties.put(ProducerConfig.ACKS_CONFIG, "all");
-        properties.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaConnection.params().bootstrapServers());
-        properties.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringSerializer");
-        properties.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringSerializer");
-        properties.put(ConsumerConfig.GROUP_ID_CONFIG, UUID.randomUUID().toString());
-        properties.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
-        properties.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringDeserializer");
-        properties.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringDeserializer");
-
-        final KafkaProducer<String, String> producer = new KafkaProducer<>(properties);
-        final OutboxSender outboxSender = new OutboxSenderKafkaAdapter(producer);
-        outboxScheduler = new OutboxScheduler(transactionManager, outboxRepository, outboxSender);
-        outboxScheduler.start();
-
-        final PlaceEventsListener placeEventsListener = new PlaceEventsListener(jsonMapper, addPlaceToOrderUseCase);
-
-        final KafkaConsumer<String, String> consumer = new KafkaConsumer<>(properties);
-        kafkaMessagesListener = new KafkaMessagesListener(consumer, "place-events", placeEventsListener);
-        kafkaMessagesListener.start();
-
         new PlacesResourceJavalinHttpAdapter(server, selectPlaceUseCase, removePlaceFromOrderUseCase);
-    }
-
-    @AfterEach
-    void tearDown()
-    {
-        outboxScheduler.stop();
-        kafkaMessagesListener.stop();
     }
 
     @Test
