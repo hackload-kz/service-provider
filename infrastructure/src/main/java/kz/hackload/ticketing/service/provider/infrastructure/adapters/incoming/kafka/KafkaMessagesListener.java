@@ -2,8 +2,6 @@ package kz.hackload.ticketing.service.provider.infrastructure.adapters.incoming.
 
 import java.time.Duration;
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 
@@ -13,25 +11,22 @@ import org.slf4j.LoggerFactory;
 public final class KafkaMessagesListener
 {
     private static final Logger log = LoggerFactory.getLogger(KafkaMessagesListener.class);
-    private final Map<String, DomainEventsListener> listeners = new ConcurrentHashMap<>();
 
+    private final DomainEventsListener listener;
     private final KafkaConsumer<String, String> consumer;
     private final Thread consumerThread;
 
     private volatile boolean running;
 
     public KafkaMessagesListener(final KafkaConsumer<String, String> consumer,
-                                 final List<String> topics)
+                                 final String topic,
+                                 final DomainEventsListener listener)
     {
         this.consumer = consumer;
-        this.consumer.subscribe(topics);
+        this.consumer.subscribe(List.of(topic));
+        this.listener = listener;
 
         consumerThread = new Thread(this::consume, "kafka-events-consumer");
-    }
-
-    public void registerDomainEventsListener(final DomainEventsListener listener)
-    {
-        listeners.put(listener.topic(), listener);
     }
 
     public void start()
@@ -46,10 +41,9 @@ public final class KafkaMessagesListener
         {
             consumer.poll(Duration.ofMillis(10L)).forEach(record ->
             {
-                final String topic = record.topic();
                 try
                 {
-                    listeners.get(topic).hande(record);
+                    listener.hande(record);
                 }
                 catch (final RuntimeException e)
                 {

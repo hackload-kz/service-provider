@@ -16,6 +16,8 @@ import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 
+import kz.hackload.ticketing.service.provider.application.AddPlaceToOrderApplicationService;
+import kz.hackload.ticketing.service.provider.application.AddPlaceToOrderUseCase;
 import kz.hackload.ticketing.service.provider.application.CancelOrderApplicationService;
 import kz.hackload.ticketing.service.provider.application.CancelOrderUseCase;
 import kz.hackload.ticketing.service.provider.application.ConfirmOrderApplicationService;
@@ -31,6 +33,7 @@ import kz.hackload.ticketing.service.provider.application.StartOrderApplicationS
 import kz.hackload.ticketing.service.provider.application.StartOrderUseCase;
 import kz.hackload.ticketing.service.provider.application.SubmitOrderApplicationService;
 import kz.hackload.ticketing.service.provider.application.SubmitOrderUseCase;
+import kz.hackload.ticketing.service.provider.domain.orders.AddPlaceToOrderService;
 import kz.hackload.ticketing.service.provider.domain.orders.OrdersRepository;
 import kz.hackload.ticketing.service.provider.domain.orders.RemovePlaceFromOrderService;
 import kz.hackload.ticketing.service.provider.domain.outbox.OutboxRepository;
@@ -39,6 +42,7 @@ import kz.hackload.ticketing.service.provider.domain.places.SelectPlaceService;
 import kz.hackload.ticketing.service.provider.infrastructure.adapters.incoming.http.OrderResourcesJavalinHttpAdapter;
 import kz.hackload.ticketing.service.provider.infrastructure.adapters.incoming.http.PlacesResourceJavalinHttpAdapter;
 import kz.hackload.ticketing.service.provider.infrastructure.adapters.incoming.kafka.KafkaMessagesListener;
+import kz.hackload.ticketing.service.provider.infrastructure.adapters.incoming.kafka.PlaceEventsListener;
 import kz.hackload.ticketing.service.provider.infrastructure.adapters.outgoing.jdbc.JdbcTransactionManager;
 import kz.hackload.ticketing.service.provider.infrastructure.adapters.outgoing.jdbc.OrdersRepositoryPostgreSqlAdapter;
 import kz.hackload.ticketing.service.provider.infrastructure.adapters.outgoing.jdbc.OutboxRepositoryPostgreSqlAdapter;
@@ -68,11 +72,13 @@ public final class ApplicationRunner
 
         final SelectPlaceService selectPlaceService = new SelectPlaceService();
         final RemovePlaceFromOrderService removePlaceFromOrderService = new RemovePlaceFromOrderService();
+        final AddPlaceToOrderService addPlaceToOrderService = new AddPlaceToOrderService();
 
         final JsonMapper jsonMapper = new JacksonJsonMapper();
 
         final SelectPlaceUseCase selectPlaceUseCase = new SelectPlaceApplicationService(selectPlaceService, jdbcTransactionManager, jsonMapper, placesRepository, ordersRepository, outboxRepository);
         final RemovePlaceFromOrderUseCase removePlaceFromOrderUseCase = new RemovePlaceFromOrderFromOrderApplicationService(jsonMapper, jdbcTransactionManager, outboxRepository, placesRepository, ordersRepository, removePlaceFromOrderService);
+        final AddPlaceToOrderUseCase addPlaceToOrderUseCase = new AddPlaceToOrderApplicationService(jdbcTransactionManager, ordersRepository, placesRepository, addPlaceToOrderService);
 
         final Properties properties = new Properties();
         properties.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, "<BOOTSTRAPS_SERVERS>");
@@ -85,9 +91,15 @@ public final class ApplicationRunner
         properties.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringDeserializer");
         properties.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringDeserializer");
 
-        final KafkaConsumer<String, String> kafkaConsumer = new KafkaConsumer<>(properties);
-        final KafkaMessagesListener kafkaMessagesListener = new KafkaMessagesListener(kafkaConsumer, List.of("place-events", "order-events"));
-        kafkaMessagesListener.start();
+        final KafkaConsumer<String, String> placeEventsKafkaConsumer = new KafkaConsumer<>(properties);
+        final PlaceEventsListener placeEventsListener = new PlaceEventsListener(jsonMapper, addPlaceToOrderUseCase);
+        final KafkaMessagesListener placeEventsKafkaMessagesListener = new KafkaMessagesListener(placeEventsKafkaConsumer, "place-events", placeEventsListener);
+        placeEventsKafkaMessagesListener.start();
+
+        final KafkaConsumer<String, String> orderEventsKafkaConsumer = new KafkaConsumer<>(properties);
+        final PlaceEventsListener orderEventsListener = new PlaceEventsListener(jsonMapper, addPlaceToOrderUseCase);
+        final KafkaMessagesListener orderEventsKafkaMessagesListener = new KafkaMessagesListener(orderEventsKafkaConsumer, "order-events", orderEventsListener);
+        orderEventsKafkaMessagesListener.start();
 
         final KafkaProducer<String, String> kafkaProducer = new KafkaProducer<>(properties);
         final OutboxSender outboxSender = new OutboxSenderKafkaAdapter(kafkaProducer);

@@ -163,8 +163,7 @@ public class SelectPlaceUseCaseTest extends AbstractIntegrationTest
         final PlaceEventsListener placeEventsListener = new PlaceEventsListener(jsonMapper, addPlaceToOrderApplicationService);
 
         final KafkaConsumer<String, String> consumer = new KafkaConsumer<>(properties);
-        kafkaMessagesListener = new KafkaMessagesListener(consumer, List.of("order-events", "place-events"));
-        kafkaMessagesListener.registerDomainEventsListener(placeEventsListener);
+        kafkaMessagesListener = new KafkaMessagesListener(consumer, "place-events", placeEventsListener);
         kafkaMessagesListener.start();
 
         server = Javalin.create();

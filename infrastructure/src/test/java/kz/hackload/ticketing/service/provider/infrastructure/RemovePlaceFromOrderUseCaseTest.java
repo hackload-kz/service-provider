@@ -8,7 +8,6 @@ import com.zaxxer.hikari.HikariDataSource;
 import javax.sql.DataSource;
 
 import java.time.Duration;
-import java.util.List;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.UUID;
@@ -95,7 +94,8 @@ public class RemovePlaceFromOrderUseCaseTest extends AbstractIntegrationTest
 
     private Javalin server;
     private OutboxScheduler outboxScheduler;
-    private KafkaMessagesListener kafkaMessagesListener;
+    private KafkaMessagesListener orderEventsKafkaListener;
+    private KafkaMessagesListener placeEventsKafkaListener;
 
     private JdbcTransactionManager transactionManager;
 
@@ -173,14 +173,14 @@ public class RemovePlaceFromOrderUseCaseTest extends AbstractIntegrationTest
         final ReleasePlaceUseCase releasePlaceUseCase = new ReleasePlaceApplicationService(transactionManager, ordersRepository, placesRepository, releasePlaceService);
 
         final OrderEventsListener orderEventsListener = new OrderEventsListener(jsonMapper, releasePlaceUseCase);
+        final KafkaConsumer<String, String> orderEventsKafkaConsumer = new KafkaConsumer<>(properties);
+        orderEventsKafkaListener = new KafkaMessagesListener(orderEventsKafkaConsumer, "order-events", orderEventsListener);
+        orderEventsKafkaListener.start();
 
         final PlaceEventsListener placeEventsListener = new PlaceEventsListener(jsonMapper, addPlaceToOrderUseCase);
-
-        final KafkaConsumer<String, String> consumer = new KafkaConsumer<>(properties);
-        kafkaMessagesListener = new KafkaMessagesListener(consumer, List.of("order-events", "place-events"));
-        kafkaMessagesListener.registerDomainEventsListener(placeEventsListener);
-        kafkaMessagesListener.registerDomainEventsListener(orderEventsListener);
-        kafkaMessagesListener.start();
+        final KafkaConsumer<String, String> placeEventsKafkaConsumer = new KafkaConsumer<>(properties);
+        placeEventsKafkaListener = new KafkaMessagesListener(placeEventsKafkaConsumer, "place-events", placeEventsListener);
+        placeEventsKafkaListener.start();
 
         server = Javalin.create();
         new PlacesResourceJavalinHttpAdapter(server, selectPlaceUseCase, removePlaceFromOrderUseCase);
@@ -191,7 +191,8 @@ public class RemovePlaceFromOrderUseCaseTest extends AbstractIntegrationTest
     {
         server.stop();
         outboxScheduler.stop();
-        kafkaMessagesListener.stop();
+        orderEventsKafkaListener.stop();
+        placeEventsKafkaListener.stop();
     }
 
     @Test
