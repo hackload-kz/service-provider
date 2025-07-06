@@ -18,6 +18,9 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
+        <!-- Observability -->
+        <slfj.version>2.0.17</slfj.version>
+
         <!-- Testing -->
         <junit.version>5.12.1</junit.version>
         <assertj.version>3.27.3</assertj.version>
@@ -58,6 +61,13 @@
             <artifactId>jspecify</artifactId>
             <version>${jspecify.version}</version>
             <scope>compile</scope>
+        </dependency>
+
+        <!-- Observability -->
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <version>${slfj.version}</version>
         </dependency>
 
         <!-- Testing -->

@@ -58,11 +58,7 @@ import kz.hackload.ticketing.service.provider.application.StartOrderUseCase;
 import kz.hackload.ticketing.service.provider.domain.orders.AddPlaceToOrderService;
 import kz.hackload.ticketing.service.provider.domain.orders.Order;
 import kz.hackload.ticketing.service.provider.domain.orders.OrderId;
-import kz.hackload.ticketing.service.provider.domain.orders.OrderNotStartedException;
 import kz.hackload.ticketing.service.provider.domain.orders.OrdersRepository;
-import kz.hackload.ticketing.service.provider.domain.orders.PlaceAlreadyAddedException;
-import kz.hackload.ticketing.service.provider.domain.orders.PlaceIsNotSelectedException;
-import kz.hackload.ticketing.service.provider.domain.orders.PlaceSelectedForAnotherOrderException;
 import kz.hackload.ticketing.service.provider.domain.orders.ReleasePlaceService;
 import kz.hackload.ticketing.service.provider.domain.orders.RemovePlaceFromOrderService;
 import kz.hackload.ticketing.service.provider.domain.outbox.OutboxRepository;
@@ -171,6 +167,7 @@ public class RemovePlaceFromOrderUseCaseTest extends AbstractIntegrationTest
         final KafkaProducer<String, String> producer = new KafkaProducer<>(properties);
         final OutboxSender outboxSender = new OutboxSenderKafkaAdapter(producer);
         outboxScheduler = new OutboxScheduler(transactionManager, outboxRepository, outboxSender);
+        outboxScheduler.start();
 
         final ReleasePlaceService releasePlaceService = new ReleasePlaceService();
         final ReleasePlaceUseCase releasePlaceUseCase = new ReleasePlaceApplicationService(transactionManager, ordersRepository, placesRepository, releasePlaceService);
@@ -193,6 +190,7 @@ public class RemovePlaceFromOrderUseCaseTest extends AbstractIntegrationTest
     public void tearDown()
     {
         server.stop();
+        outboxScheduler.stop();
         kafkaMessagesListener.stop();
     }
 
@@ -211,8 +209,6 @@ public class RemovePlaceFromOrderUseCaseTest extends AbstractIntegrationTest
 
         transactionManager.executeInTransaction(() -> outboxRepository.all())
                 .forEach(om -> LOG.info("Found an outbox message: {}", om));
-        // TODO: move to setUp in daemon thread
-        outboxScheduler.sendScheduledMessages();
 
         Awaitility.await()
                 .atMost(Duration.ofSeconds(60L))
@@ -242,9 +238,6 @@ public class RemovePlaceFromOrderUseCaseTest extends AbstractIntegrationTest
 
                 assertThat(actual.contains(placeId)).isFalse();
                 assertThat(actual.places()).isEmpty();
-
-                // TODO: move to setUp in daemon thread
-                outboxScheduler.sendScheduledMessages();
 
                 Awaitility.await()
                         .atMost(Duration.ofSeconds(60L))

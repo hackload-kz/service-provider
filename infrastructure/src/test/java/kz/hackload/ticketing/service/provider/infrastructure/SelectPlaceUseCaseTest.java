@@ -156,6 +156,7 @@ public class SelectPlaceUseCaseTest extends AbstractIntegrationTest
         final KafkaProducer<String, String> producer = new KafkaProducer<>(properties);
         final OutboxSender outboxSender = new OutboxSenderKafkaAdapter(producer);
         outboxScheduler = new OutboxScheduler(transactionManager, outboxRepository, outboxSender);
+        outboxScheduler.start();
 
         final AddPlaceToOrderService addPlaceToOrderService = new AddPlaceToOrderService();
         final AddPlaceToOrderApplicationService addPlaceToOrderApplicationService = new AddPlaceToOrderApplicationService(transactionManager, ordersRepository, placesRepository, addPlaceToOrderService);
@@ -173,6 +174,7 @@ public class SelectPlaceUseCaseTest extends AbstractIntegrationTest
     @AfterEach
     void tearDown()
     {
+        outboxScheduler.stop();
         kafkaMessagesListener.stop();
     }
 
@@ -210,16 +212,6 @@ public class SelectPlaceUseCaseTest extends AbstractIntegrationTest
                 assertThat(actual.isFree()).isFalse();
                 assertThat(actual.selectedFor()).isPresent().get().isEqualTo(orderId);
                 assertThat(actual.isSelectedFor(orderId)).isTrue();
-
-                final OutboxMessage outboxMessage = transactionManager.executeInTransaction(() -> outboxRepository.nextForDelivery().orElseThrow());
-                assertThat(outboxMessage.id()).isNotNull();
-                assertThat(outboxMessage.aggregateId()).isEqualTo(placeId.value().toString());
-                assertThat(outboxMessage.aggregateType()).isEqualTo("place");
-                assertThat(outboxMessage.topic()).isEqualTo("place-events");
-                assertThatJson(outboxMessage.payload()).isEqualTo(jsonMapper.toJson(new PlaceSelectedEvent(orderId)));
-
-                // TODO: move to setUp in daemon thread
-                outboxScheduler.sendScheduledMessages();
 
                 Awaitility.await()
                         .atMost(Duration.ofSeconds(60L))
