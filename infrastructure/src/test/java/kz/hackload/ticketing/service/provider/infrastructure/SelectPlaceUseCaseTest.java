@@ -1,6 +1,5 @@
 package kz.hackload.ticketing.service.provider.infrastructure;
 
-import static net.javacrumbs.jsonunit.assertj.JsonAssertions.assertThatJson;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.zaxxer.hikari.HikariConfig;
@@ -9,7 +8,6 @@ import com.zaxxer.hikari.HikariDataSource;
 import javax.sql.DataSource;
 
 import java.time.Duration;
-import java.util.List;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.UUID;
@@ -37,6 +35,8 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import org.testcontainers.shaded.org.awaitility.Awaitility;
+
 import kz.hackload.ticketing.service.provider.application.AddPlaceToOrderApplicationService;
 import kz.hackload.ticketing.service.provider.application.CreatePlaceApplicationService;
 import kz.hackload.ticketing.service.provider.application.CreatePlaceUseCase;
@@ -53,11 +53,9 @@ import kz.hackload.ticketing.service.provider.domain.orders.Order;
 import kz.hackload.ticketing.service.provider.domain.orders.OrderId;
 import kz.hackload.ticketing.service.provider.domain.orders.OrdersRepository;
 import kz.hackload.ticketing.service.provider.domain.orders.RemovePlaceFromOrderService;
-import kz.hackload.ticketing.service.provider.domain.outbox.OutboxMessage;
 import kz.hackload.ticketing.service.provider.domain.outbox.OutboxRepository;
 import kz.hackload.ticketing.service.provider.domain.places.Place;
 import kz.hackload.ticketing.service.provider.domain.places.PlaceId;
-import kz.hackload.ticketing.service.provider.domain.places.PlaceSelectedEvent;
 import kz.hackload.ticketing.service.provider.domain.places.PlacesRepository;
 import kz.hackload.ticketing.service.provider.domain.places.Row;
 import kz.hackload.ticketing.service.provider.domain.places.Seat;
@@ -70,7 +68,6 @@ import kz.hackload.ticketing.service.provider.infrastructure.adapters.outgoing.j
 import kz.hackload.ticketing.service.provider.infrastructure.adapters.outgoing.jdbc.OutboxRepositoryPostgreSqlAdapter;
 import kz.hackload.ticketing.service.provider.infrastructure.adapters.outgoing.jdbc.OutboxSenderKafkaAdapter;
 import kz.hackload.ticketing.service.provider.infrastructure.adapters.outgoing.jdbc.PlacesRepositoryPostgreSqlAdapter;
-import org.testcontainers.shaded.org.awaitility.Awaitility;
 
 @TestcontainersPostgreSQL(mode = ContainerMode.PER_METHOD)
 @TestcontainersKafka(mode = ContainerMode.PER_RUN,

@@ -5,9 +5,10 @@ import java.util.concurrent.ExecutionException;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 
-import kz.hackload.ticketing.service.provider.application.OutboxSender;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import kz.hackload.ticketing.service.provider.application.OutboxSender;
 
 public final class OutboxSenderKafkaAdapter implements OutboxSender
 {

@@ -3,7 +3,6 @@ package kz.hackload.ticketing.service.provider.infrastructure.adapters.incoming.
 import java.util.UUID;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.apache.kafka.clients.consumer.KafkaConsumer;
 
 import kz.hackload.ticketing.service.provider.application.AddPlaceToOrderUseCase;
 import kz.hackload.ticketing.service.provider.application.JsonMapper;
