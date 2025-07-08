@@ -1,5 +1,6 @@
 package kz.hackload.ticketing.service.provider.domain.orders;
 
+import java.time.Instant;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -27,17 +28,19 @@ public final class Order extends AggregateRoot<OrderId, OrderDomainEvent>
         this.status = orderStatus;
     }
 
-    public static Order start(final OrderId orderId)
+    public static Order start(final Instant startedAt, final OrderId orderId)
     {
         final Order order = new Order(orderId);
-        final OrderStartedEvent event = new OrderStartedEvent();
+        final long revision = order.incrementRevision();
+
+        final OrderStartedEvent event = new OrderStartedEvent(startedAt, revision);
 
         order.addEvent(event);
 
         return order;
     }
 
-    public static Order restore(final OrderId id, final long revision, final List<OrderDomainEvent> events)
+    public static Order restore(final OrderId id, final List<OrderDomainEvent> events)
     {
         final Order order = new Order(id);
         for (OrderDomainEvent event : events)
@@ -52,8 +55,6 @@ public final class Order extends AggregateRoot<OrderId, OrderDomainEvent>
                 throw new AggregateRestoreException(e);
             }
         }
-
-        order.setRevision(revision);
 
         return order;
     }
@@ -78,38 +79,43 @@ public final class Order extends AggregateRoot<OrderId, OrderDomainEvent>
         return OrderStatus.STARTED == status;
     }
 
-    public void addPlace(final PlaceId placeId) throws PlaceAlreadyAddedException, OrderNotStartedException
+    public void addPlace(final Instant addedAt, final PlaceId placeId) throws PlaceAlreadyAddedException, OrderNotStartedException
     {
-        final PlaceAddedToOrderEvent event = new PlaceAddedToOrderEvent(placeId);
+        final long revision = incrementRevision();
+        final PlaceAddedToOrderEvent event = new PlaceAddedToOrderEvent(addedAt, revision, placeId);
 
         apply(event);
         addEvent(event);
     }
 
-    public void removePlace(final PlaceId placeId) throws PlaceNotAddedException, OrderNotStartedException
+    public void removePlace(final Instant removedAt, final PlaceId placeId) throws PlaceNotAddedException, OrderNotStartedException
     {
-        final PlaceRemovedFromOrderEvent event = new PlaceRemovedFromOrderEvent(placeId);
+        final long revision = incrementRevision();
+        final PlaceRemovedFromOrderEvent event = new PlaceRemovedFromOrderEvent(removedAt, revision, placeId);
         apply(event);
         addEvent(event);
     }
 
-    public void submit() throws NoPlacesAddedException, OrderNotStartedException
+    public void submit(final Instant submittedAt) throws NoPlacesAddedException, OrderNotStartedException
     {
-        final OrderSubmittedEvent event = new OrderSubmittedEvent();
+        final long revision = incrementRevision();
+        final OrderSubmittedEvent event = new OrderSubmittedEvent(submittedAt, revision);
         apply(event);
         addEvent(event);
     }
 
-    public void confirm() throws OrderNotSubmittedException
+    public void confirm(final Instant confirmedAt) throws OrderNotSubmittedException
     {
-        final OrderConfirmedEvent orderConfirmedEvent = new OrderConfirmedEvent();
+        final long revision = incrementRevision();
+        final OrderConfirmedEvent orderConfirmedEvent = new OrderConfirmedEvent(confirmedAt, revision);
         apply(orderConfirmedEvent);
         addEvent(orderConfirmedEvent);
     }
 
-    public void cancel() throws OrderAlreadyCancelledException
+    public void cancel(final Instant cancelledAt) throws OrderAlreadyCancelledException
     {
-        final OrderCancelledEvent orderCancelledEvent = new OrderCancelledEvent(places());
+        final long revision = incrementRevision();
+        final OrderCancelledEvent orderCancelledEvent = new OrderCancelledEvent(cancelledAt, revision, places());
         apply(orderCancelledEvent);
         addEvent(orderCancelledEvent);
     }
@@ -130,6 +136,7 @@ public final class Order extends AggregateRoot<OrderId, OrderDomainEvent>
             case OrderConfirmedEvent e -> apply(e);
             case OrderCancelledEvent e -> apply(e);
         }
+        setRevision(orderDomainEvent.revision());
     }
 
     private void apply(final OrderStartedEvent ignored)

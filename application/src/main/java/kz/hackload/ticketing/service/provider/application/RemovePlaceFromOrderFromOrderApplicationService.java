@@ -52,7 +52,7 @@ public final class RemovePlaceFromOrderFromOrderApplicationService implements Re
 
         final List<OutboxMessage> outboxMessages = order.uncommittedEvents()
                 .stream()
-                .map(e -> new OutboxMessage(outboxRepository.nextId(), "order-events", orderId.value().toString(), "order", jsonMapper.toJson(e)))
+                .map(e -> new OutboxMessage(outboxRepository.nextId(), "order-events", orderId.value().toString(),  e.revision(), "order", jsonMapper.toJson(e)))
                 .toList();
 
         transactionManager.executeInTransaction(() ->

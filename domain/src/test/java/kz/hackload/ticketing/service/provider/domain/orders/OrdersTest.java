@@ -3,6 +3,7 @@ package kz.hackload.ticketing.service.provider.domain.orders;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -17,8 +18,10 @@ public class OrdersTest
     @Test
     void shouldCreateOrder()
     {
+        final Instant now = Instant.now();
+
         final OrderId orderId = new OrderId(UUID.randomUUID());
-        final Order order = Order.start(orderId);
+        final Order order = Order.start(now, orderId);
 
         assertThat(order.id()).isEqualTo(orderId);
         assertThat(order.status()).isEqualTo(OrderStatus.STARTED);
@@ -27,7 +30,7 @@ public class OrdersTest
         assertThat(order.uncommittedEvents())
                 .hasSize(1)
                 .first()
-                .isEqualTo(new OrderStartedEvent());
+                .isEqualTo(new OrderStartedEvent(now, 1));
 
         order.commitEvents();
 
@@ -37,13 +40,15 @@ public class OrdersTest
     @Test
     void shouldAddPlace() throws PlaceAlreadyAddedException, OrderNotStartedException
     {
+        final Instant now = Instant.now();
+
         final OrderId orderId = new OrderId(UUID.randomUUID());
-        final Order order = Order.start(orderId);
+        final Order order = Order.start(now, orderId);
         order.commitEvents();
 
         final PlaceId placeId = new PlaceId(UUID.randomUUID());
 
-        order.addPlace(placeId);
+        order.addPlace(now, placeId);
 
         assertThat(order.places())
                 .hasSize(1)
@@ -53,42 +58,46 @@ public class OrdersTest
         assertThat(order.uncommittedEvents())
                 .hasSize(1)
                 .first()
-                .isEqualTo(new PlaceAddedToOrderEvent(placeId));
+                .isEqualTo(new PlaceAddedToOrderEvent(now, 2, placeId));
     }
 
     @Test
     void shouldHandlePlaceReleasedEvent() throws PlaceAlreadyAddedException, PlaceNotAddedException, OrderNotStartedException
     {
+        final Instant now = Instant.now();
+
         final OrderId orderId = new OrderId(UUID.randomUUID());
-        final Order order = Order.start(orderId);
+        final Order order = Order.start(now, orderId);
 
         final PlaceId placeId = new PlaceId(UUID.randomUUID());
 
-        order.addPlace(placeId);
+        order.addPlace(now, placeId);
         order.commitEvents();
 
-        order.removePlace(placeId);
+        order.removePlace(now, placeId);
 
         assertThat(order.places()).isEmpty();
 
         assertThat(order.uncommittedEvents())
                 .hasSize(1)
                 .first()
-                .isEqualTo(new PlaceRemovedFromOrderEvent(placeId));
+                .isEqualTo(new PlaceRemovedFromOrderEvent(now, 3, placeId));
     }
 
     @Test
     void shouldNotHandleDuplicateSelectedPlaceEvent() throws PlaceAlreadyAddedException, OrderNotStartedException
     {
+        final Instant now = Instant.now();
+
         final OrderId orderId = new OrderId(UUID.randomUUID());
-        final Order order = Order.start(orderId);
+        final Order order = Order.start(now, orderId);
 
         final PlaceId placeId = new PlaceId(UUID.randomUUID());
 
-        order.addPlace(placeId);
+        order.addPlace(now, placeId);
         order.commitEvents();
 
-        assertThatThrownBy(() -> order.addPlace(placeId))
+        assertThatThrownBy(() -> order.addPlace(now, placeId))
                 .isInstanceOf(PlaceAlreadyAddedException.class)
                 .hasMessage("The place %s is already added".formatted(placeId));
 
@@ -99,17 +108,19 @@ public class OrdersTest
     @Test
     void shouldNotHandleDuplicatePlaceReleasedEvent() throws PlaceAlreadyAddedException, PlaceNotAddedException, OrderNotStartedException
     {
+        final Instant now = Instant.now();
+
         final OrderId orderId = new OrderId(UUID.randomUUID());
-        final Order order = Order.start(orderId);
+        final Order order = Order.start(now, orderId);
 
         final PlaceId placeId = new PlaceId(UUID.randomUUID());
 
-        order.addPlace(placeId);
+        order.addPlace(now, placeId);
 
-        order.removePlace(placeId);
+        order.removePlace(now, placeId);
         order.commitEvents();
 
-        assertThatThrownBy(() -> order.removePlace(placeId))
+        assertThatThrownBy(() -> order.removePlace(now, placeId))
                 .isInstanceOf(PlaceNotAddedException.class)
                 .hasMessage("The place %s is not added".formatted(placeId));
 
@@ -120,39 +131,43 @@ public class OrdersTest
     @Test
     void shouldSubmitOrder() throws PlaceAlreadyAddedException, NoPlacesAddedException, OrderNotStartedException
     {
+        final Instant now = Instant.now();
+
         final OrderId orderId = new OrderId(UUID.randomUUID());
-        final Order order = Order.start(orderId);
+        final Order order = Order.start(now, orderId);
         order.commitEvents();
 
         final PlaceId placeId = new PlaceId(UUID.randomUUID());
 
-        order.addPlace(placeId);
+        order.addPlace(now, placeId);
         order.commitEvents();
 
-        order.submit();
+        order.submit(now);
 
         assertThat(order.status()).isEqualTo(OrderStatus.SUBMITTED);
         assertThat(order.uncommittedEvents())
                 .hasSize(1)
                 .first()
-                .isEqualTo(new OrderSubmittedEvent());
+                .isEqualTo(new OrderSubmittedEvent(now, 3));
     }
 
     @Test
     void shouldNotAddPlaceToSubmittedOrder() throws PlaceAlreadyAddedException, NoPlacesAddedException, OrderNotStartedException
     {
+        final Instant now = Instant.now();
+
         final OrderId orderId = new OrderId(UUID.randomUUID());
-        final Order order = Order.start(orderId);
+        final Order order = Order.start(now, orderId);
         order.commitEvents();
 
         final PlaceId placeId = new PlaceId(UUID.randomUUID());
 
-        order.addPlace(placeId);
-        order.submit();
+        order.addPlace(now, placeId);
+        order.submit(now);
 
         order.commitEvents();
 
-        assertThatThrownBy(() -> order.addPlace(placeId))
+        assertThatThrownBy(() -> order.addPlace(now, placeId))
                 .isInstanceOf(OrderNotStartedException.class)
                 .hasMessage("Order %s is not started".formatted(orderId));
 
@@ -163,18 +178,20 @@ public class OrdersTest
     @Test
     void shouldNotRemovePlaceFromNotStartedOrder() throws PlaceAlreadyAddedException, NoPlacesAddedException, OrderNotStartedException
     {
+        final Instant now = Instant.now();
+
         final OrderId orderId = new OrderId(UUID.randomUUID());
-        final Order order = Order.start(orderId);
+        final Order order = Order.start(now, orderId);
         order.commitEvents();
 
         final PlaceId placeId = new PlaceId(UUID.randomUUID());
 
-        order.addPlace(placeId);
-        order.submit();
+        order.addPlace(now, placeId);
+        order.submit(now);
 
         order.commitEvents();
 
-        assertThatThrownBy(() -> order.removePlace(placeId))
+        assertThatThrownBy(() -> order.removePlace(now, placeId))
                 .isInstanceOf(OrderNotStartedException.class)
                 .hasMessage("Order %s is not started".formatted(orderId));
 
@@ -185,11 +202,13 @@ public class OrdersTest
     @Test
     void shouldNotSubmitOrderWithoutAddedPlaces()
     {
+        final Instant now = Instant.now();
+
         final OrderId orderId = new OrderId(UUID.randomUUID());
-        final Order order = Order.start(orderId);
+        final Order order = Order.start(now, orderId);
         order.commitEvents();
 
-        assertThatThrownBy(order::submit)
+        assertThatThrownBy(() -> order.submit(now))
                 .isInstanceOf(NoPlacesAddedException.class)
                 .hasMessage("Order %s does not have any place in it");
 
@@ -200,26 +219,31 @@ public class OrdersTest
     @Test
     void shouldRestoreOrderFromEvents()
     {
-        final OrderId orderId = new OrderId(UUID.randomUUID());
-        List<OrderDomainEvent> envelopes = List.of(new OrderStartedEvent());
+        final Instant now = Instant.now();
 
-        final Order order = Order.restore(orderId, 1L, envelopes);
+        final OrderId orderId = new OrderId(UUID.randomUUID());
+        List<OrderDomainEvent> envelopes = List.of(new OrderStartedEvent(now, 0));
+
+        final Order order = Order.restore(orderId, envelopes);
 
         assertThat(order.id()).isEqualTo(orderId);
         assertThat(order.status()).isEqualTo(OrderStatus.STARTED);
         assertThat(order.places()).isEmpty();
         assertThat(order.uncommittedEvents()).isEmpty();
+        assertThat(order.revision()).isEqualTo(0L);
     }
 
     @Test
     void shouldNotRestoreOrderFromEvents()
     {
+        final Instant now = Instant.now();
+
         final OrderId orderId = new OrderId(UUID.randomUUID());
         final PlaceId placeId = new PlaceId(UUID.randomUUID());
 
-        List<OrderDomainEvent> events = List.of(new OrderStartedEvent(), new PlaceAddedToOrderEvent(placeId), new PlaceAddedToOrderEvent(placeId));
+        List<OrderDomainEvent> events = List.of(new OrderStartedEvent(now, 0L), new PlaceAddedToOrderEvent(now, 1L, placeId), new PlaceAddedToOrderEvent(now, 2L, placeId));
 
-        assertThatThrownBy(() -> Order.restore(orderId, 2L, events))
+        assertThatThrownBy(() -> Order.restore(orderId, events))
                 .isInstanceOf(AggregateRestoreException.class)
                 .hasMessage("kz.hackload.ticketing.service.provider.domain.orders.PlaceAlreadyAddedException: The place %s is already added".formatted(placeId));
     }
@@ -227,40 +251,44 @@ public class OrdersTest
     @Test
     void shouldConfirmOrder() throws OrderNotStartedException, PlaceAlreadyAddedException, NoPlacesAddedException, OrderNotSubmittedException
     {
+        final Instant now = Instant.now();
+
         final OrderId orderId = new OrderId(UUID.randomUUID());
-        final Order order = Order.start(orderId);
+        final Order order = Order.start(now, orderId);
         order.commitEvents();
 
         final PlaceId placeId = new PlaceId(UUID.randomUUID());
 
-        order.addPlace(placeId);
-        order.submit();
+        order.addPlace(now, placeId);
+        order.submit(now);
 
         order.commitEvents();
 
-        order.confirm();
+        order.confirm(now);
 
         assertThat(order.status()).isEqualTo(OrderStatus.CONFIRMED);
         assertThat(order.uncommittedEvents())
                 .hasSize(1)
                 .first()
-                .isEqualTo(new OrderConfirmedEvent());
+                .isEqualTo(new OrderConfirmedEvent(now, 4));
     }
 
     @Test
     void shouldNotConfirmNonSubmittedOrder() throws OrderNotStartedException, PlaceAlreadyAddedException
     {
+        final Instant now = Instant.now();
+
         final OrderId orderId = new OrderId(UUID.randomUUID());
-        final Order order = Order.start(orderId);
+        final Order order = Order.start(now, orderId);
         order.commitEvents();
 
         final PlaceId placeId = new PlaceId(UUID.randomUUID());
 
-        order.addPlace(placeId);
+        order.addPlace(now, placeId);
 
         order.commitEvents();
 
-        assertThatThrownBy(order::confirm)
+        assertThatThrownBy(() -> order.confirm(now))
                 .isInstanceOf(OrderNotSubmittedException.class)
                 .hasMessage("Order %s is not submitted".formatted(orderId));
 
@@ -271,34 +299,38 @@ public class OrdersTest
     @Test
     void shouldCancelEmptyStartedOrder() throws OrderAlreadyCancelledException
     {
+        final Instant now = Instant.now();
+
         final OrderId orderId = new OrderId(UUID.randomUUID());
-        final Order order = Order.start(orderId);
+        final Order order = Order.start(now, orderId);
         order.commitEvents();
 
-        order.cancel();
+        order.cancel(now);
 
         assertThat(order.status()).isEqualTo(OrderStatus.CANCELLED);
         assertThat(order.uncommittedEvents())
                 .hasSize(1)
                 .first()
-                .isEqualTo(new OrderCancelledEvent(Set.of()));
+                .isEqualTo(new OrderCancelledEvent(now, 2, Set.of()));
     }
 
     @Test
     void shouldRemovePlacesFromOrderAndCancelStartedOrder() throws OrderNotStartedException, PlaceAlreadyAddedException, OrderAlreadyCancelledException
     {
+        final Instant now = Instant.now();
+
         final OrderId orderId = new OrderId(UUID.randomUUID());
-        final Order order = Order.start(orderId);
+        final Order order = Order.start(now, orderId);
 
         final PlaceId placeId = new PlaceId(UUID.randomUUID());
-        order.addPlace(placeId);
+        order.addPlace(now, placeId);
         order.commitEvents();
 
-        order.cancel();
+        order.cancel(now);
 
         assertThat(order.uncommittedEvents())
                 .hasSize(1)
-                .containsExactly(new OrderCancelledEvent(Set.of(placeId)));
+                .containsExactly(new OrderCancelledEvent(now, 3, Set.of(placeId)));
     }
 
     @Test
@@ -306,31 +338,35 @@ public class OrdersTest
             PlaceAlreadyAddedException,
             NoPlacesAddedException, OrderAlreadyCancelledException
     {
+        final Instant now = Instant.now();
+
         final OrderId orderId = new OrderId(UUID.randomUUID());
-        final Order order = Order.start(orderId);
+        final Order order = Order.start(now, orderId);
 
         final PlaceId placeId = new PlaceId(UUID.randomUUID());
-        order.addPlace(placeId);
-        order.submit();
+        order.addPlace(now, placeId);
+        order.submit(now);
         order.commitEvents();
 
-        order.cancel();
+        order.cancel(now);
 
         assertThat(order.uncommittedEvents())
                 .hasSize(1)
-                .containsExactly(new OrderCancelledEvent(Set.of(placeId)));
+                .containsExactly(new OrderCancelledEvent(now, 4, Set.of(placeId)));
     }
 
     @Test
     void shouldNotCancelCancelledOrder() throws OrderAlreadyCancelledException
     {
-        final OrderId orderId = new OrderId(UUID.randomUUID());
-        final Order order = Order.start(orderId);
+        final Instant now = Instant.now();
 
-        order.cancel();
+        final OrderId orderId = new OrderId(UUID.randomUUID());
+        final Order order = Order.start(now, orderId);
+
+        order.cancel(now);
         order.commitEvents();
 
-        assertThatThrownBy(order::cancel)
+        assertThatThrownBy(() -> order.cancel(now))
                 .isInstanceOf(OrderAlreadyCancelledException.class)
                 .hasMessage("Order %s is already cancelled".formatted(orderId));
 

@@ -2,12 +2,13 @@ package kz.hackload.ticketing.service.provider.infrastructure.adapters;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
 import kz.hackload.ticketing.service.provider.application.JsonMapper;
 
 public final class JacksonJsonMapper implements JsonMapper
 {
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
 
     @Override
     public <T> String toJson(final T object)

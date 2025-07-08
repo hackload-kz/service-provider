@@ -2,11 +2,19 @@ package kz.hackload.ticketing.service.provider.domain.orders;
 
 import java.util.Optional;
 
+import kz.hackload.ticketing.service.provider.domain.Clocks;
 import kz.hackload.ticketing.service.provider.domain.places.Place;
 import kz.hackload.ticketing.service.provider.domain.places.PlaceId;
 
 public final class AddPlaceToOrderService
 {
+    private final Clocks clocks;
+
+    public AddPlaceToOrderService(final Clocks clocks)
+    {
+        this.clocks = clocks;
+    }
+
     public void addPlace(final Order order, final Place place) throws PlaceAlreadyAddedException, PlaceSelectedForAnotherOrderException, PlaceIsNotSelectedException, OrderNotStartedException
     {
         final OrderId orderId = order.id();
@@ -23,6 +31,6 @@ public final class AddPlaceToOrderService
             throw new PlaceSelectedForAnotherOrderException(placeId, selectedFor.get(), orderId);
         }
 
-        order.addPlace(placeId);
+        order.addPlace(clocks.now(), placeId);
     }
 }

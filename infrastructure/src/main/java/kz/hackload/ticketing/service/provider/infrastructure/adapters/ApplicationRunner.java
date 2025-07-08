@@ -36,6 +36,8 @@ import kz.hackload.ticketing.service.provider.application.StartOrderApplicationS
 import kz.hackload.ticketing.service.provider.application.StartOrderUseCase;
 import kz.hackload.ticketing.service.provider.application.SubmitOrderApplicationService;
 import kz.hackload.ticketing.service.provider.application.SubmitOrderUseCase;
+import kz.hackload.ticketing.service.provider.domain.Clocks;
+import kz.hackload.ticketing.service.provider.domain.RealClock;
 import kz.hackload.ticketing.service.provider.domain.orders.AddPlaceToOrderService;
 import kz.hackload.ticketing.service.provider.domain.orders.OrdersRepository;
 import kz.hackload.ticketing.service.provider.domain.orders.RemovePlaceFromOrderService;
@@ -72,14 +74,16 @@ public final class ApplicationRunner
         final PlacesRepository placesRepository = new PlacesRepositoryPostgreSqlAdapter(jdbcTransactionManager);
         final OutboxRepository outboxRepository = new OutboxRepositoryPostgreSqlAdapter(jdbcTransactionManager);
 
-        final StartOrderUseCase startOrderUseCase = new StartOrderApplicationService(jdbcTransactionManager, ordersRepository);
-        final SubmitOrderUseCase submitOrderUseCase = new SubmitOrderApplicationService(jdbcTransactionManager, ordersRepository);
-        final ConfirmOrderUseCase confirmOrderUseCase = new ConfirmOrderApplicationService(jdbcTransactionManager, ordersRepository);
-        final CancelOrderUseCase cancelOrderUseCase = new CancelOrderApplicationService(jdbcTransactionManager, ordersRepository);
+        final Clocks clocks = new RealClock();
 
-        final SelectPlaceService selectPlaceService = new SelectPlaceService();
-        final RemovePlaceFromOrderService removePlaceFromOrderService = new RemovePlaceFromOrderService();
-        final AddPlaceToOrderService addPlaceToOrderService = new AddPlaceToOrderService();
+        final StartOrderUseCase startOrderUseCase = new StartOrderApplicationService(clocks, jdbcTransactionManager, ordersRepository);
+        final SubmitOrderUseCase submitOrderUseCase = new SubmitOrderApplicationService(clocks, jdbcTransactionManager, ordersRepository);
+        final ConfirmOrderUseCase confirmOrderUseCase = new ConfirmOrderApplicationService(clocks, jdbcTransactionManager, ordersRepository);
+        final CancelOrderUseCase cancelOrderUseCase = new CancelOrderApplicationService(clocks, jdbcTransactionManager, ordersRepository);
+
+        final SelectPlaceService selectPlaceService = new SelectPlaceService(clocks);
+        final RemovePlaceFromOrderService removePlaceFromOrderService = new RemovePlaceFromOrderService(clocks);
+        final AddPlaceToOrderService addPlaceToOrderService = new AddPlaceToOrderService(clocks);
 
         final JsonMapper jsonMapper = new JacksonJsonMapper();
 

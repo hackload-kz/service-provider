@@ -49,11 +49,9 @@ public final class SelectPlaceApplicationService implements SelectPlaceUseCase
 
         selectPlaceService.selectPlaceForOrder(place, order);
 
-        final OutboxMessageId outboxMessageId = outboxRepository.nextId();
-
         final List<OutboxMessage> outboxMessages = place.uncommittedEvents()
                 .stream()
-                .map(event -> new OutboxMessage(outboxMessageId, "place-events", placeId.value().toString(), "place", jsonMapper.toJson(event)))
+                .map(event -> new OutboxMessage(outboxRepository.nextId(), "place-events", placeId.value().toString(), event.revision(), "place", jsonMapper.toJson(event)))
                 .toList();
 
         transactionManager.executeInTransaction(() ->

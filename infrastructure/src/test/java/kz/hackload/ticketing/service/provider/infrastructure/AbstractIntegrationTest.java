@@ -79,6 +79,7 @@ public abstract class AbstractIntegrationTest
     protected Javalin server;
     protected JsonMapper jsonMapper = new JacksonJsonMapper();
     protected JdbcTransactionManager transactionManager;
+    protected FakeClock clocks = new FakeClock();
 
     protected OrdersRepository ordersRepository;
     protected OutboxRepository outboxRepository;
@@ -105,20 +106,22 @@ public abstract class AbstractIntegrationTest
         postgresConnection.execute("""
                 create table public.events
                 (
-                    aggregate_id uuid not null,
-                    revision     bigint       not null,
-                    event_type   varchar(255),
-                    data         jsonb,
+                    aggregate_id uuid   not null,
+                    revision     bigint not null,
+                    event_date   timestamp with time zone not null,
+                    event_type   varchar(255) not null,
+                    data         jsonb not null,
                     primary key (aggregate_id, revision)
                 );
 
                 create table public.outbox
                 (
-                    id              uuid primary key,
-                    topic           varchar(255),
-                    aggregate_id    varchar(255),
-                    aggregate_type  varchar(255),
-                    payload         jsonb
+                    id                 uuid primary key,
+                    topic              varchar(255) not null,
+                    aggregate_id       varchar(255) not null,
+                    aggregate_revision bigint       not null,
+                    aggregate_type     varchar(255) not null,
+                    payload            jsonb        not null
                 );
                 """
         );
@@ -135,20 +138,20 @@ public abstract class AbstractIntegrationTest
         outboxRepository = new OutboxRepositoryPostgreSqlAdapter(transactionManager);
         placesRepository = new PlacesRepositoryPostgreSqlAdapter(transactionManager);
 
-        final SelectPlaceService selectPlaceService = new SelectPlaceService();
-        final AddPlaceToOrderService addPlaceToOrderService = new AddPlaceToOrderService();
-        final ReleasePlaceService releasePlaceService = new ReleasePlaceService();
-        final RemovePlaceFromOrderService removePlaceFromOrderService = new RemovePlaceFromOrderService();
+        final SelectPlaceService selectPlaceService = new SelectPlaceService(clocks);
+        final AddPlaceToOrderService addPlaceToOrderService = new AddPlaceToOrderService(clocks);
+        final ReleasePlaceService releasePlaceService = new ReleasePlaceService(clocks);
+        final RemovePlaceFromOrderService removePlaceFromOrderService = new RemovePlaceFromOrderService(clocks);
 
-        createPlaceUseCase = new CreatePlaceApplicationService(transactionManager, placesRepository);
-        startOrderUseCase = new StartOrderApplicationService(transactionManager, ordersRepository);
+        createPlaceUseCase = new CreatePlaceApplicationService(clocks, transactionManager, placesRepository);
+        startOrderUseCase = new StartOrderApplicationService(clocks, transactionManager, ordersRepository);
         selectPlaceUseCase = new SelectPlaceApplicationService(selectPlaceService, transactionManager, jsonMapper, placesRepository, ordersRepository, outboxRepository);
         releasePlaceUseCase = new ReleasePlaceApplicationService(transactionManager, ordersRepository, placesRepository, releasePlaceService);
-        submitOrderUseCase = new SubmitOrderApplicationService(transactionManager, ordersRepository);
+        submitOrderUseCase = new SubmitOrderApplicationService(clocks, transactionManager, ordersRepository);
         addPlaceToOrderUseCase = new AddPlaceToOrderApplicationService(transactionManager, ordersRepository, placesRepository, addPlaceToOrderService);
         removePlaceFromOrderUseCase = new RemovePlaceFromOrderFromOrderApplicationService(jsonMapper, transactionManager, outboxRepository, placesRepository, ordersRepository, removePlaceFromOrderService);
-        confirmOrderUseCase = new ConfirmOrderApplicationService(transactionManager, ordersRepository);
-        cancelOrderUseCase = new CancelOrderApplicationService(transactionManager, ordersRepository);
+        confirmOrderUseCase = new ConfirmOrderApplicationService(clocks, transactionManager, ordersRepository);
+        cancelOrderUseCase = new CancelOrderApplicationService(clocks, transactionManager, ordersRepository);
 
         final Properties properties = new Properties();
         properties.put(ProducerConfig.ACKS_CONFIG, "all");

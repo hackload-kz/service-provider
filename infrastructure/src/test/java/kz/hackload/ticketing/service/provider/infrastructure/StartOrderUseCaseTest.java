@@ -3,6 +3,7 @@ package kz.hackload.ticketing.service.provider.infrastructure;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
 import java.util.Map;
 import java.util.UUID;
@@ -22,7 +23,7 @@ import kz.hackload.ticketing.service.provider.infrastructure.adapters.incoming.h
 
 public class StartOrderUseCaseTest extends AbstractIntegrationTest
 {
-    private static final ObjectMapper MAPPER = new ObjectMapper();
+    private static final ObjectMapper MAPPER = new ObjectMapper().registerModule(new JavaTimeModule());
 
     @BeforeEach
     void setUp()

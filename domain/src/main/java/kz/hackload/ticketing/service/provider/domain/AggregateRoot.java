@@ -6,7 +6,7 @@ import java.util.Objects;
 
 import kz.hackload.ticketing.service.provider.domain.places.Place;
 
-public abstract class AggregateRoot<ID extends DomainEntityId, EVENT extends DomainEvent>
+public abstract class AggregateRoot<ID extends DomainEntityId<?>, EVENT extends DomainEvent>
 {
     protected final ID id;
     private final List<EVENT> events = new ArrayList<>();
@@ -41,6 +41,11 @@ public abstract class AggregateRoot<ID extends DomainEntityId, EVENT extends Dom
     protected final void setRevision(final long revision)
     {
         this.revision = revision;
+    }
+
+    protected final long incrementRevision()
+    {
+        return ++revision;
     }
 
     protected final void addEvent(final EVENT event)

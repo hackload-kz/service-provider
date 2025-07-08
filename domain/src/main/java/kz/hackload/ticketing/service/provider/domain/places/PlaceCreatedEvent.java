@@ -1,6 +1,8 @@
 package kz.hackload.ticketing.service.provider.domain.places;
 
-public record PlaceCreatedEvent(Row row, Seat seat) implements PlaceDomainEvent
+import java.time.Instant;
+
+public record PlaceCreatedEvent(Instant occurredOn, long revision, Row row, Seat seat) implements PlaceDomainEvent
 {
     @Override
     public String type()

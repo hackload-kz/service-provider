@@ -2,11 +2,15 @@ package kz.hackload.ticketing.service.provider.infrastructure.adapters.outgoing.
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.Instant;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -32,7 +36,7 @@ public final class OrdersRepositoryPostgreSqlAdapter implements OrdersRepository
 {
     private final JdbcTransactionManager transactionManager;
     // todo: replace with constructor injection
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
 
     public OrdersRepositoryPostgreSqlAdapter(final JdbcTransactionManager transactionManager)
     {
@@ -48,7 +52,7 @@ public final class OrdersRepositoryPostgreSqlAdapter implements OrdersRepository
     @Override
     public Optional<Order> findById(final OrderId orderId)
     {
-        record ResultSetRow(UUID id, String eventType, long revision, String data) {}
+        record ResultSetRow(UUID id, String eventType, long revision, Instant occurredOn, String data) {}
 
         final ArrayList<ResultSetRow> rsRows = new ArrayList<>();
 
@@ -69,11 +73,11 @@ public final class OrdersRepositoryPostgreSqlAdapter implements OrdersRepository
                         final UUID id = (UUID) rs.getObject("aggregate_id");
                         final String eventType = rs.getString("event_type");
                         final long revision = rs.getLong("revision");
-
+                        final Instant occurredOn = rs.getObject("event_date", OffsetDateTime.class).toInstant();
                         final PGobject pGobject = (PGobject) rs.getObject("data");
                         final String data = Objects.requireNonNull(pGobject.getValue());
 
-                        rsRows.add(new ResultSetRow(id, eventType, revision, data));
+                        rsRows.add(new ResultSetRow(id, eventType, revision, occurredOn, data));
                     }
                     while (rs.next());
                 }
@@ -115,7 +119,7 @@ public final class OrdersRepositoryPostgreSqlAdapter implements OrdersRepository
             throw new RuntimeException(e);
         }
 
-        return Optional.of(Order.restore(orderId, events.size(), events));
+        return Optional.of(Order.restore(orderId, events));
     }
 
     @Override
@@ -142,7 +146,7 @@ public final class OrdersRepositoryPostgreSqlAdapter implements OrdersRepository
         long currentRevision = order.revision();
 
         final Connection connection = transactionManager.currentConnection();
-        try (final var statement = connection.prepareStatement("INSERT INTO events(aggregate_id, event_type, revision, data) VALUES (?, ?, ?, ?)"))
+        try (final var statement = connection.prepareStatement("INSERT INTO events(aggregate_id, event_type, revision, event_date, data) VALUES (?, ?, ?, ?, ?)"))
         {
             for (final var entry : uncommittedEventToJsonMap.entrySet())
             {
@@ -154,11 +158,13 @@ public final class OrdersRepositoryPostgreSqlAdapter implements OrdersRepository
                 statement.setString(2, entry.getKey().type());
                 statement.setLong(3, currentRevision++);
 
+                statement.setObject(4, entry.getKey().occurredOn().atOffset(ZoneOffset.UTC));
+
                 final PGobject pGobject = new PGobject();
                 pGobject.setType("jsonb");
                 pGobject.setValue(entry.getValue());
 
-                statement.setObject(4, pGobject);
+                statement.setObject(5, pGobject);
                 statement.addBatch();
             }
 

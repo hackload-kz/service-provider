@@ -1,5 +1,6 @@
 package kz.hackload.ticketing.service.provider.domain.places;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
@@ -24,18 +25,19 @@ public final class Place extends AggregateRoot<PlaceId, PlaceDomainEvent>
         this.seat = seat;
     }
 
-    public static Place create(final PlaceId placeId, final Row row, final Seat seat)
+    public static Place create(final Instant createdAt, final PlaceId placeId, final Row row, final Seat seat)
     {
         final Place place = new Place(placeId, row, seat);
+        final long revision = place.incrementRevision();
 
-        final PlaceCreatedEvent event = new PlaceCreatedEvent(row, seat);
+        final PlaceCreatedEvent event = new PlaceCreatedEvent(createdAt, revision, row, seat);
         place.apply(event);
         place.addEvent(event);
 
         return place;
     }
 
-    public static Place restore(final PlaceId id, final long revision, final List<PlaceDomainEvent> events)
+    public static Place restore(final PlaceId id, final List<PlaceDomainEvent> events)
     {
         final PlaceCreatedEvent placeCreatedEvent = (PlaceCreatedEvent) events.getFirst();
         final Place place = new Place(id, placeCreatedEvent.row(), placeCreatedEvent.seat());
@@ -51,8 +53,6 @@ public final class Place extends AggregateRoot<PlaceId, PlaceDomainEvent>
             }
         }
 
-        place.setRevision(revision);
-
         return place;
     }
 
@@ -66,9 +66,10 @@ public final class Place extends AggregateRoot<PlaceId, PlaceDomainEvent>
         return seat;
     }
 
-    public void selectFor(final OrderId orderId) throws PlaceAlreadySelectedException
+    public void selectFor(final Instant selectedAt, final OrderId orderId) throws PlaceAlreadySelectedException
     {
-        final PlaceSelectedEvent event = new PlaceSelectedEvent(orderId);
+        final long revision = incrementRevision();
+        final PlaceSelectedEvent event = new PlaceSelectedEvent(selectedAt, revision, orderId);
         apply(event);
         addEvent(event);
     }
@@ -83,9 +84,10 @@ public final class Place extends AggregateRoot<PlaceId, PlaceDomainEvent>
         return orderId.equals(selectedFor);
     }
 
-    public void release() throws PlaceAlreadyReleasedException
+    public void release(final Instant releasedAt) throws PlaceAlreadyReleasedException
     {
-        final PlaceReleasedEvent placeReleasedEvent = new PlaceReleasedEvent(selectedFor);
+        final long revision = incrementRevision();
+        final PlaceReleasedEvent placeReleasedEvent = new PlaceReleasedEvent(releasedAt, revision, selectedFor);
         apply(placeReleasedEvent);
         addEvent(placeReleasedEvent);
     }
@@ -104,6 +106,8 @@ public final class Place extends AggregateRoot<PlaceId, PlaceDomainEvent>
             case PlaceReleasedEvent e -> apply(e);
             case PlaceCreatedEvent e -> apply(e);
         }
+
+        setRevision(event.revision());
     }
 
     private void apply(final PlaceSelectedEvent event) throws PlaceAlreadySelectedException

@@ -1,6 +1,8 @@
 package kz.hackload.ticketing.service.provider.domain.orders;
 
-public record OrderStartedEvent() implements OrderDomainEvent
+import java.time.Instant;
+
+public record OrderStartedEvent(Instant occurredOn, long revision) implements OrderDomainEvent
 {
     @Override
     public String type()
