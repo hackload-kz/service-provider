@@ -16,16 +16,10 @@ public final class Order extends AggregateRoot<OrderId, OrderDomainEvent>
 
     private Order(final OrderId orderId)
     {
-        this(orderId, OrderStatus.STARTED);
-    }
-
-
-    private Order(final OrderId orderId, final OrderStatus orderStatus)
-    {
         super(orderId);
 
         this.places = new HashSet<>();
-        this.status = orderStatus;
+        this.status = OrderStatus.STARTED;
     }
 
     public static Order start(final Instant startedAt, final OrderId orderId)
