@@ -3,7 +3,10 @@ package kz.hackload.ticketing.service.provider.infrastructure;
 import static net.javacrumbs.jsonunit.assertj.JsonAssertions.assertThatJson;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.time.Clock;
 import java.time.Duration;
+import java.time.Instant;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.Optional;
@@ -39,6 +42,7 @@ public class SelectPlaceUseCaseTest extends AbstractIntegrationTest
     void placeSelected()
     {
         // given
+        clocks.setClock(Clock.fixed(Instant.now(), ZoneId.systemDefault()));
         final Row row = new Row(1);
         final Seat seat = new Seat(1);
 

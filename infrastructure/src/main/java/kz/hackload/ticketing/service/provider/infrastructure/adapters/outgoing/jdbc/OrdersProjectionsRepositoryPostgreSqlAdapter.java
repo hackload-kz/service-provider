@@ -47,12 +47,35 @@ public final class OrdersProjectionsRepositoryPostgreSqlAdapter implements Order
     }
 
     @Override
-    public void increasePlacesCount(final OrderId orderId, final Instant placeAddedAt)
+    public void incrementPlacesCount(final OrderId orderId, final Instant placeAddedAt)
     {
         try (final Connection connection = dataSource.getConnection();
              final PreparedStatement statement = connection.prepareStatement("UPDATE orders SET places_count = places_count + 1, updated_at = ? WHERE id = ?"))
         {
             statement.setObject(1, placeAddedAt.atOffset(ZoneOffset.UTC));
+
+            final PGobject idParamPgObject = new PGobject();
+            idParamPgObject.setValue(orderId.value().toString());
+            idParamPgObject.setType("uuid");
+
+            statement.setObject(2, idParamPgObject);
+
+            statement.executeUpdate();
+        }
+        catch (final SQLException e)
+        {
+            // todo: replace with domain exception
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Override
+    public void decrementPlacesCount(final OrderId orderId, final Instant placeRemovedAt)
+    {
+        try (final Connection connection = dataSource.getConnection();
+             final PreparedStatement statement = connection.prepareStatement("UPDATE orders SET places_count = places_count - 1, updated_at = ? WHERE id = ?"))
+        {
+            statement.setObject(1, placeRemovedAt.atOffset(ZoneOffset.UTC));
 
             final PGobject idParamPgObject = new PGobject();
             idParamPgObject.setValue(orderId.value().toString());
