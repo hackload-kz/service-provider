@@ -66,9 +66,7 @@ public final class OrderEventsListener implements DomainEventsListener
                 releasePlace(e);
                 ordersProjectionService.placeRemovedFromOrder(orderId, e);
             }
-            case OrderSubmittedEvent e ->
-            {
-            }
+            case OrderSubmittedEvent e -> ordersProjectionService.orderSubmitted(orderId, e);
             case OrderConfirmedEvent e ->
             {
             }

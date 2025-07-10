@@ -9,4 +9,6 @@ public interface OrdersProjectionsRepository
     void incrementPlacesCount(final OrderId orderId, final Instant placeAddedAt);
 
     void decrementPlacesCount(final OrderId orderId, final Instant placeRemovedAt);
+
+    void orderSubmitted(final OrderId orderId, final Instant submittedAt);
 }

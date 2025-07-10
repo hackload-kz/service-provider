@@ -140,21 +140,46 @@ public class OrderResourcesJavalinHttpAdapter
         {
             getOrderUseCase.order(orderId).ifPresentOrElse(order ->
                     {
-                        context.json("""
+                        if (order.submittedAt() == null)
+                        {
+                            context.json("""
                                 {
                                     "id": "%s",
                                     "status": "%s",
                                     "started_at": "%s",
                                     "updated_at": "%s",
+                                    "submitted_at": null,
                                     "places_count": %s
                                 }
                                 """.formatted(
-                                order.id(),
-                                order.status(),
-                                DateTimeFormatter.ISO_INSTANT.format(order.startedAt().truncatedTo(ChronoUnit.SECONDS)),
-                                DateTimeFormatter.ISO_INSTANT.format(order.updatedAt().truncatedTo(ChronoUnit.SECONDS)),
-                                order.placesCount())
-                        );
+                                    order.id(),
+                                    order.status(),
+                                    DateTimeFormatter.ISO_INSTANT.format(order.startedAt().truncatedTo(ChronoUnit.SECONDS)),
+                                    DateTimeFormatter.ISO_INSTANT.format(order.updatedAt().truncatedTo(ChronoUnit.SECONDS)),
+                                    order.placesCount())
+                            );
+                        }
+                        else
+                        {
+                            context.json("""
+                                {
+                                    "id": "%s",
+                                    "status": "%s",
+                                    "started_at": "%s",
+                                    "updated_at": "%s",
+                                    "submitted_at": "%s",
+                                    "places_count": %s
+                                }
+                                """.formatted(
+                                    order.id(),
+                                    order.status(),
+                                    DateTimeFormatter.ISO_INSTANT.format(order.startedAt().truncatedTo(ChronoUnit.SECONDS)),
+                                    DateTimeFormatter.ISO_INSTANT.format(order.updatedAt().truncatedTo(ChronoUnit.SECONDS)),
+                                    DateTimeFormatter.ISO_INSTANT.format(order.submittedAt().truncatedTo(ChronoUnit.SECONDS)),
+                                    order.placesCount())
+                            );
+                        }
+
                         context.status(HttpStatus.OK);
                     },
                     () -> context.status(HttpStatus.NOT_FOUND));

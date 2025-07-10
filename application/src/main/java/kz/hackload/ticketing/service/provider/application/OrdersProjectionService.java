@@ -2,6 +2,7 @@ package kz.hackload.ticketing.service.provider.application;
 
 import kz.hackload.ticketing.service.provider.domain.orders.OrderId;
 import kz.hackload.ticketing.service.provider.domain.orders.OrderStartedEvent;
+import kz.hackload.ticketing.service.provider.domain.orders.OrderSubmittedEvent;
 import kz.hackload.ticketing.service.provider.domain.orders.OrdersProjectionsRepository;
 import kz.hackload.ticketing.service.provider.domain.orders.PlaceAddedToOrderEvent;
 import kz.hackload.ticketing.service.provider.domain.orders.PlaceRemovedFromOrderEvent;
@@ -28,5 +29,10 @@ public class OrdersProjectionService
     public void placeRemovedFromOrder(final OrderId orderId, final PlaceRemovedFromOrderEvent e)
     {
         ordersQueryRepository.decrementPlacesCount(orderId, e.occurredOn());
+    }
+
+    public void orderSubmitted(final OrderId orderId, final OrderSubmittedEvent e)
+    {
+        ordersQueryRepository.orderSubmitted(orderId, e.occurredOn());
     }
 }

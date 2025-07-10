@@ -12,14 +12,17 @@ public final class SubmitOrderApplicationService implements SubmitOrderUseCase
     private final Clocks clocks;
     private final TransactionManager transactionManager;
     private final OrdersRepository ordersRepository;
+    private final EventsDispatcher eventsDispatcher;
 
     public SubmitOrderApplicationService(final Clocks clocks,
                                          final TransactionManager transactionManager,
-                                         final OrdersRepository ordersRepository)
+                                         final OrdersRepository ordersRepository,
+                                         final EventsDispatcher eventsDispatcher)
     {
         this.clocks = clocks;
         this.transactionManager = transactionManager;
         this.ordersRepository = ordersRepository;
+        this.eventsDispatcher = eventsDispatcher;
     }
 
     @Override
@@ -29,6 +32,10 @@ public final class SubmitOrderApplicationService implements SubmitOrderUseCase
 
         order.submit(clocks.now());
 
-        transactionManager.executeInTransaction(() -> ordersRepository.save(order));
+        transactionManager.executeInTransaction(() ->
+        {
+            eventsDispatcher.dispatch(orderId, order.uncommittedEvents());
+            ordersRepository.save(order);
+        });
     }
 }
