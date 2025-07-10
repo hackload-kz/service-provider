@@ -96,16 +96,38 @@ public final class OrdersProjectionsRepositoryPostgreSqlAdapter implements Order
     public void orderSubmitted(final OrderId orderId, final Instant submittedAt)
     {
         try (final Connection connection = dataSource.getConnection();
-             final PreparedStatement statement = connection.prepareStatement("UPDATE orders SET status = 'SUBMITTED', updated_at = ?, submitted_at = ? WHERE id = ?"))
+             final PreparedStatement statement = connection.prepareStatement("UPDATE orders SET status = 'SUBMITTED', updated_at = ? WHERE id = ?"))
         {
             statement.setObject(1, submittedAt.atOffset(ZoneOffset.UTC));
-            statement.setObject(2, submittedAt.atOffset(ZoneOffset.UTC));
 
             final PGobject idParamPgObject = new PGobject();
             idParamPgObject.setValue(orderId.value().toString());
             idParamPgObject.setType("uuid");
 
-            statement.setObject(3, idParamPgObject);
+            statement.setObject(2, idParamPgObject);
+
+            statement.executeUpdate();
+        }
+        catch (final SQLException e)
+        {
+            // todo: replace with domain exception
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Override
+    public void orderConfirmed(final OrderId orderId, final Instant orderConfirmed)
+    {
+        try (final Connection connection = dataSource.getConnection();
+             final PreparedStatement statement = connection.prepareStatement("UPDATE orders SET status = 'CONFIRMED', updated_at = ? WHERE id = ?"))
+        {
+            statement.setObject(1, orderConfirmed.atOffset(ZoneOffset.UTC));
+
+            final PGobject idParamPgObject = new PGobject();
+            idParamPgObject.setValue(orderId.value().toString());
+            idParamPgObject.setType("uuid");
+
+            statement.setObject(2, idParamPgObject);
 
             statement.executeUpdate();
         }

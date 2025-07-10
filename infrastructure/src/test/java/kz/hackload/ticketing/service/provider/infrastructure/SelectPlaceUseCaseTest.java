@@ -94,7 +94,6 @@ public class SelectPlaceUseCaseTest extends AbstractIntegrationTest
                                     "status": "%s",
                                     "started_at": "%s",
                                     "updated_at": "%s",
-                                    "submitted_at": null,
                                     "places_count": %s
                                 }
                                 """.formatted(

@@ -11,4 +11,6 @@ public interface OrdersProjectionsRepository
     void decrementPlacesCount(final OrderId orderId, final Instant placeRemovedAt);
 
     void orderSubmitted(final OrderId orderId, final Instant submittedAt);
+
+    void orderConfirmed(final OrderId orderId, final Instant orderConfirmed);
 }

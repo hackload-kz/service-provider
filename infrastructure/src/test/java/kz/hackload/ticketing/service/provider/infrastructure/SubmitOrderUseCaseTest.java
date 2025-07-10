@@ -89,14 +89,12 @@ public class SubmitOrderUseCaseTest extends AbstractIntegrationTest
                                     "status": "%s",
                                     "started_at": "%s",
                                     "updated_at": "%s",
-                                    "submitted_at": "%s",
                                     "places_count": %s
                                 }
                                 """.formatted(
                             orderId,
                             "SUBMITTED",
                             DateTimeFormatter.ISO_INSTANT.format(startTime.truncatedTo(ChronoUnit.SECONDS)),
-                            DateTimeFormatter.ISO_INSTANT.format(submitTime.truncatedTo(ChronoUnit.SECONDS)),
                             DateTimeFormatter.ISO_INSTANT.format(submitTime.truncatedTo(ChronoUnit.SECONDS)),
                             1)
                     );

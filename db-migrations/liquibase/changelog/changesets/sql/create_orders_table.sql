@@ -5,6 +5,5 @@ create table public.orders
     places_count int                      not null,
     started_at   timestamp with time zone not null,
     update_at    timestamp with time zone not null,
-    submitted_at timestamp with time zone,
     revision     bigint                   not null
 );
