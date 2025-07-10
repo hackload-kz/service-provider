@@ -44,7 +44,7 @@ public final class OutboxScheduler
     public void start()
     {
         LOG.info("Starting outbox scheduler");
-        scheduler.scheduleAtFixedRate(this::sendScheduledMessages, 100L, 100L, TimeUnit.MILLISECONDS);
+        scheduler.scheduleAtFixedRate(this::sendScheduledMessages, 10L, 10L, TimeUnit.MILLISECONDS);
     }
 
     public void stop()
@@ -86,7 +86,7 @@ public final class OutboxScheduler
                 }
 
                 final OutboxMessage outboxMessage = optionalOutboxMessage.get();
-                outboxSender.send(outboxMessage.topic(), outboxMessage.aggregateId(), outboxMessage.payload());
+                outboxSender.send(outboxMessage.topic(), outboxMessage.aggregateId(), outboxMessage.eventType(), outboxMessage.payload());
                 outboxRepository.delete(outboxMessage.id());
             });
         }

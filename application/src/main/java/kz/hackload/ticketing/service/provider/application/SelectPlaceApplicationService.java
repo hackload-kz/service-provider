@@ -1,13 +1,8 @@
 package kz.hackload.ticketing.service.provider.application;
 
-import java.util.List;
-
 import kz.hackload.ticketing.service.provider.domain.orders.Order;
 import kz.hackload.ticketing.service.provider.domain.orders.OrderId;
 import kz.hackload.ticketing.service.provider.domain.orders.OrdersRepository;
-import kz.hackload.ticketing.service.provider.domain.outbox.OutboxMessage;
-import kz.hackload.ticketing.service.provider.domain.outbox.OutboxMessageId;
-import kz.hackload.ticketing.service.provider.domain.outbox.OutboxRepository;
 import kz.hackload.ticketing.service.provider.domain.places.Place;
 import kz.hackload.ticketing.service.provider.domain.places.PlaceAlreadySelectedException;
 import kz.hackload.ticketing.service.provider.domain.places.PlaceCanNotBeAddedToOrderException;
@@ -20,25 +15,23 @@ public final class SelectPlaceApplicationService implements SelectPlaceUseCase
     private final SelectPlaceService selectPlaceService;
 
     private final TransactionManager transactionManager;
-    private final JsonMapper jsonMapper;
 
     private final PlacesRepository placesRepository;
     private final OrdersRepository ordersRepository;
-    private final OutboxRepository outboxRepository;
+
+    private final EventsDispatcher eventsDispatcher;
 
     public SelectPlaceApplicationService(final SelectPlaceService selectPlaceService,
                                          final TransactionManager transactionManager,
-                                         final JsonMapper jsonMapper,
                                          final PlacesRepository placesRepository,
                                          final OrdersRepository ordersRepository,
-                                         final OutboxRepository outboxRepository)
+                                         final EventsDispatcher eventsDispatcher)
     {
         this.selectPlaceService = selectPlaceService;
         this.transactionManager = transactionManager;
-        this.jsonMapper = jsonMapper;
         this.placesRepository = placesRepository;
         this.ordersRepository = ordersRepository;
-        this.outboxRepository = outboxRepository;
+        this.eventsDispatcher = eventsDispatcher;
     }
 
     @Override
@@ -49,15 +42,10 @@ public final class SelectPlaceApplicationService implements SelectPlaceUseCase
 
         selectPlaceService.selectPlaceForOrder(place, order);
 
-        final List<OutboxMessage> outboxMessages = place.uncommittedEvents()
-                .stream()
-                .map(event -> new OutboxMessage(outboxRepository.nextId(), "place-events", placeId.value().toString(), event.revision(), "place", jsonMapper.toJson(event)))
-                .toList();
-
         transactionManager.executeInTransaction(() ->
         {
             placesRepository.save(place);
-            outboxMessages.forEach(outboxRepository::save);
+            eventsDispatcher.dispatch(placeId, place.uncommittedEvents());
         });
     }
 }

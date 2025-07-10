@@ -35,7 +35,7 @@ public final class OutboxRepositoryPostgreSqlAdapter implements OutboxRepository
     {
         final Connection connection = transactionManager.currentConnection();
 
-        try (final var statement = connection.prepareStatement("INSERT INTO outbox(id, topic, aggregate_id, aggregate_revision, aggregate_type, payload) VALUES (?, ?, ?, ?, ?, ?)"))
+        try (final var statement = connection.prepareStatement("INSERT INTO outbox(id, topic, aggregate_id, aggregate_revision, aggregate_type, event_type, payload) VALUES (?, ?, ?, ?, ?, ?, ?)"))
         {
             final PGobject idPgObject = new PGobject();
             idPgObject.setValue(outboxMessage.id().value().toString());
@@ -46,12 +46,13 @@ public final class OutboxRepositoryPostgreSqlAdapter implements OutboxRepository
             statement.setString(3, outboxMessage.aggregateId());
             statement.setLong(4, outboxMessage.aggregateRevision());
             statement.setString(5, outboxMessage.aggregateType());
+            statement.setString(6, outboxMessage.eventType());
 
             final PGobject pGobject = new PGobject();
             pGobject.setType("jsonb");
             pGobject.setValue(outboxMessage.payload());
 
-            statement.setObject(6, pGobject);
+            statement.setObject(7, pGobject);
 
             statement.execute();
         }
@@ -79,11 +80,12 @@ public final class OutboxRepositoryPostgreSqlAdapter implements OutboxRepository
                     final String aggregateId = rs.getString("aggregate_id");
                     final String aggregateType = rs.getString("aggregate_type");
                     final long aggregateRevision = rs.getLong("aggregate_revision");
+                    final String eventType = rs.getString("event_type");
 
                     final PGobject pGobject = (PGobject) rs.getObject("payload");
                     final String payload = pGobject.getValue();
 
-                    return Optional.of(new OutboxMessage(new OutboxMessageId(id), topic, aggregateId, aggregateRevision, aggregateType, payload));
+                    return Optional.of(new OutboxMessage(new OutboxMessageId(id), topic, aggregateId, aggregateRevision, aggregateType, eventType, payload));
                 }
                 else
                 {
@@ -138,11 +140,11 @@ public final class OutboxRepositoryPostgreSqlAdapter implements OutboxRepository
                     final String aggregateId = rs.getString("aggregate_id");
                     final String aggregateType = rs.getString("aggregate_type");
                     final long aggregateRevision = rs.getLong("aggregate_revision");
-
+                    final String eventType = rs.getString("event_type");
                     final PGobject pGobject = (PGobject) rs.getObject("payload");
                     final String payload = pGobject.getValue();
 
-                    outboxMessages.add(new OutboxMessage(new OutboxMessageId(id), topic, aggregateId, aggregateRevision, aggregateType, payload));
+                    outboxMessages.add(new OutboxMessage(new OutboxMessageId(id), topic, aggregateId, aggregateRevision, aggregateType, eventType, payload));
                 }
             }
         }

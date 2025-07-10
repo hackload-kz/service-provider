@@ -28,7 +28,7 @@ public class SubmitOrderUseCaseTest extends AbstractIntegrationTest
     @BeforeEach
     void setUp()
     {
-        new OrderResourcesJavalinHttpAdapter(server, startOrderUseCase, submitOrderUseCase, confirmOrderUseCase, cancelOrderUseCase);
+        new OrderResourcesJavalinHttpAdapter(server, startOrderUseCase, submitOrderUseCase, confirmOrderUseCase, cancelOrderUseCase, getOrderUseCase);
     }
 
     @Test

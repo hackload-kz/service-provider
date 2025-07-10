@@ -35,7 +35,11 @@ import kz.hackload.ticketing.service.provider.application.ConfirmOrderApplicatio
 import kz.hackload.ticketing.service.provider.application.ConfirmOrderUseCase;
 import kz.hackload.ticketing.service.provider.application.CreatePlaceApplicationService;
 import kz.hackload.ticketing.service.provider.application.CreatePlaceUseCase;
+import kz.hackload.ticketing.service.provider.application.EventsDispatcher;
+import kz.hackload.ticketing.service.provider.application.GetOrderUseCase;
 import kz.hackload.ticketing.service.provider.application.JsonMapper;
+import kz.hackload.ticketing.service.provider.application.OrdersProjectionService;
+import kz.hackload.ticketing.service.provider.application.OrdersQueryService;
 import kz.hackload.ticketing.service.provider.application.OutboxScheduler;
 import kz.hackload.ticketing.service.provider.application.OutboxSender;
 import kz.hackload.ticketing.service.provider.application.ReleasePlaceApplicationService;
@@ -49,6 +53,8 @@ import kz.hackload.ticketing.service.provider.application.StartOrderUseCase;
 import kz.hackload.ticketing.service.provider.application.SubmitOrderApplicationService;
 import kz.hackload.ticketing.service.provider.application.SubmitOrderUseCase;
 import kz.hackload.ticketing.service.provider.domain.orders.AddPlaceToOrderService;
+import kz.hackload.ticketing.service.provider.domain.orders.OrdersProjectionsRepository;
+import kz.hackload.ticketing.service.provider.domain.orders.OrdersQueryRepository;
 import kz.hackload.ticketing.service.provider.domain.orders.OrdersRepository;
 import kz.hackload.ticketing.service.provider.domain.orders.ReleasePlaceService;
 import kz.hackload.ticketing.service.provider.domain.orders.RemovePlaceFromOrderService;
@@ -60,9 +66,11 @@ import kz.hackload.ticketing.service.provider.infrastructure.adapters.incoming.k
 import kz.hackload.ticketing.service.provider.infrastructure.adapters.incoming.kafka.OrderEventsListener;
 import kz.hackload.ticketing.service.provider.infrastructure.adapters.incoming.kafka.PlaceEventsListener;
 import kz.hackload.ticketing.service.provider.infrastructure.adapters.outgoing.jdbc.JdbcTransactionManager;
+import kz.hackload.ticketing.service.provider.infrastructure.adapters.outgoing.jdbc.OrdersProjectionsRepositoryPostgreSqlAdapter;
+import kz.hackload.ticketing.service.provider.infrastructure.adapters.outgoing.jdbc.OrdersQueryRepositoryPostgreSqlAdapter;
 import kz.hackload.ticketing.service.provider.infrastructure.adapters.outgoing.jdbc.OrdersRepositoryPostgreSqlAdapter;
 import kz.hackload.ticketing.service.provider.infrastructure.adapters.outgoing.jdbc.OutboxRepositoryPostgreSqlAdapter;
-import kz.hackload.ticketing.service.provider.infrastructure.adapters.outgoing.jdbc.OutboxSenderKafkaAdapter;
+import kz.hackload.ticketing.service.provider.infrastructure.adapters.outgoing.kafka.OutboxSenderKafkaAdapter;
 import kz.hackload.ticketing.service.provider.infrastructure.adapters.outgoing.jdbc.PlacesRepositoryPostgreSqlAdapter;
 
 @TestcontainersPostgreSQL(mode = ContainerMode.PER_METHOD)
@@ -84,6 +92,8 @@ public abstract class AbstractIntegrationTest
     protected OrdersRepository ordersRepository;
     protected OutboxRepository outboxRepository;
     protected PlacesRepository placesRepository;
+    protected OrdersQueryRepository ordersQueryRepository;
+    protected OrdersProjectionsRepository ordersProjectionsRepository;
 
     protected CreatePlaceUseCase createPlaceUseCase;
     protected StartOrderUseCase startOrderUseCase;
@@ -94,6 +104,7 @@ public abstract class AbstractIntegrationTest
     protected RemovePlaceFromOrderUseCase removePlaceFromOrderUseCase;
     protected ConfirmOrderUseCase confirmOrderUseCase;
     protected CancelOrderUseCase cancelOrderUseCase;
+    protected GetOrderUseCase getOrderUseCase;
 
     protected OutboxScheduler outboxScheduler;
     private KafkaMessagesListener placeEventskafkaMessagesListener;
@@ -121,7 +132,17 @@ public abstract class AbstractIntegrationTest
                     aggregate_id       varchar(255) not null,
                     aggregate_revision bigint       not null,
                     aggregate_type     varchar(255) not null,
+                    event_type         varchar(255) not null,
                     payload            jsonb        not null
+                );
+
+                create table public.orders
+                (
+                    id           uuid                     not null,
+                    status       varchar(255)             not null,
+                    places_count int                      not null,
+                    started_at   timestamp with time zone not null,
+                    revision     bigint                   not null
                 );
                 """
         );
@@ -137,21 +158,26 @@ public abstract class AbstractIntegrationTest
         ordersRepository = new OrdersRepositoryPostgreSqlAdapter(transactionManager);
         outboxRepository = new OutboxRepositoryPostgreSqlAdapter(transactionManager);
         placesRepository = new PlacesRepositoryPostgreSqlAdapter(transactionManager);
+        ordersQueryRepository = new OrdersQueryRepositoryPostgreSqlAdapter(dataSource);
+        ordersProjectionsRepository = new OrdersProjectionsRepositoryPostgreSqlAdapter(dataSource);
 
         final SelectPlaceService selectPlaceService = new SelectPlaceService(clocks);
         final AddPlaceToOrderService addPlaceToOrderService = new AddPlaceToOrderService(clocks);
         final ReleasePlaceService releasePlaceService = new ReleasePlaceService(clocks);
         final RemovePlaceFromOrderService removePlaceFromOrderService = new RemovePlaceFromOrderService(clocks);
 
+        final EventsDispatcher eventsDispatcher = new EventsDispatcher(jsonMapper, outboxRepository);
+
         createPlaceUseCase = new CreatePlaceApplicationService(clocks, transactionManager, placesRepository);
-        startOrderUseCase = new StartOrderApplicationService(clocks, transactionManager, ordersRepository);
-        selectPlaceUseCase = new SelectPlaceApplicationService(selectPlaceService, transactionManager, jsonMapper, placesRepository, ordersRepository, outboxRepository);
+        startOrderUseCase = new StartOrderApplicationService(clocks, transactionManager, ordersRepository, eventsDispatcher);
+        selectPlaceUseCase = new SelectPlaceApplicationService(selectPlaceService, transactionManager, placesRepository, ordersRepository, eventsDispatcher);
         releasePlaceUseCase = new ReleasePlaceApplicationService(transactionManager, ordersRepository, placesRepository, releasePlaceService);
         submitOrderUseCase = new SubmitOrderApplicationService(clocks, transactionManager, ordersRepository);
         addPlaceToOrderUseCase = new AddPlaceToOrderApplicationService(transactionManager, ordersRepository, placesRepository, addPlaceToOrderService);
-        removePlaceFromOrderUseCase = new RemovePlaceFromOrderFromOrderApplicationService(jsonMapper, transactionManager, outboxRepository, placesRepository, ordersRepository, removePlaceFromOrderService);
+        removePlaceFromOrderUseCase = new RemovePlaceFromOrderFromOrderApplicationService(transactionManager, placesRepository, ordersRepository, eventsDispatcher, removePlaceFromOrderService);
         confirmOrderUseCase = new ConfirmOrderApplicationService(clocks, transactionManager, ordersRepository);
         cancelOrderUseCase = new CancelOrderApplicationService(clocks, transactionManager, ordersRepository);
+        getOrderUseCase = new OrdersQueryService(ordersQueryRepository);
 
         final Properties properties = new Properties();
         properties.put(ProducerConfig.ACKS_CONFIG, "all");
@@ -171,7 +197,8 @@ public abstract class AbstractIntegrationTest
         final KafkaConsumer<String, String> consumer = new KafkaConsumer<>(properties);
         placeEventskafkaMessagesListener = new KafkaMessagesListener(consumer, "place-events", placeEventsListener);
 
-        final OrderEventsListener orderEventsListener = new OrderEventsListener(jsonMapper, releasePlaceUseCase);
+        final OrdersProjectionService ordersProjectionService = new OrdersProjectionService(ordersProjectionsRepository);
+        final OrderEventsListener orderEventsListener = new OrderEventsListener(jsonMapper, ordersProjectionService, releasePlaceUseCase);
         final KafkaConsumer<String, String> orderEventsKafkaConsumer = new KafkaConsumer<>(properties);
         orderEventsKafkaListener = new KafkaMessagesListener(orderEventsKafkaConsumer, "order-events", orderEventsListener);
 
