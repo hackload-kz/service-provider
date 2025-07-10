@@ -177,7 +177,7 @@ public abstract class AbstractIntegrationTest
         addPlaceToOrderUseCase = new AddPlaceToOrderApplicationService(transactionManager, ordersRepository, placesRepository, addPlaceToOrderService, eventsDispatcher);
         removePlaceFromOrderUseCase = new RemovePlaceFromOrderFromOrderApplicationService(transactionManager, placesRepository, ordersRepository, eventsDispatcher, removePlaceFromOrderService);
         confirmOrderUseCase = new ConfirmOrderApplicationService(clocks, transactionManager, ordersRepository, eventsDispatcher);
-        cancelOrderUseCase = new CancelOrderApplicationService(clocks, transactionManager, ordersRepository);
+        cancelOrderUseCase = new CancelOrderApplicationService(clocks, transactionManager, ordersRepository, eventsDispatcher);
         getOrderUseCase = new OrdersQueryService(ordersQueryRepository);
 
         final Properties properties = new Properties();

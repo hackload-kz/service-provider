@@ -1,13 +1,24 @@
 package kz.hackload.ticketing.service.provider.infrastructure;
 
+import static net.javacrumbs.jsonunit.assertj.JsonAssertions.assertThatJson;
 import static org.assertj.core.api.Assertions.assertThat;
+
+import java.time.Clock;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 
 import io.javalin.testtools.JavalinTest;
 
 import okhttp3.Response;
+import okhttp3.ResponseBody;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+
+import org.testcontainers.shaded.org.awaitility.Awaitility;
 
 import kz.hackload.ticketing.service.provider.domain.orders.NoPlacesAddedException;
 import kz.hackload.ticketing.service.provider.domain.orders.Order;
@@ -42,6 +53,9 @@ public class CancelOrderUseCaseTest extends AbstractIntegrationTest
             NoPlacesAddedException
     {
         // given
+        final Instant startTime = Instant.now();
+        clocks.setClock(Clock.fixed(startTime, ZoneId.systemDefault()));
+
         final Row row = new Row(1);
         final Seat seat = new Seat(1);
         final PlaceId placeId = createPlaceUseCase.create(row, seat);
@@ -53,6 +67,9 @@ public class CancelOrderUseCaseTest extends AbstractIntegrationTest
 
         JavalinTest.test(server, (_, c) ->
         {
+            final Instant cancelTime = Instant.now();
+            clocks.setClock(Clock.fixed(cancelTime, ZoneId.systemDefault()));
+
             // when
             try (final Response response = c.patch("/api/partners/v1/orders/" + orderId.value() + "/cancel"))
             {
@@ -64,6 +81,35 @@ public class CancelOrderUseCaseTest extends AbstractIntegrationTest
                 assertThat(actual.status()).isEqualTo(OrderStatus.CANCELLED);
                 assertThat(actual.places()).isEmpty();
                 assertThat(actual.contains(placeId)).isFalse();
+            }
+
+            Awaitility.await()
+                    .atMost(Duration.ofSeconds(10L))
+                    .until(() -> ordersQueryRepository.getOrder(orderId).map(o -> o.status() == OrderStatus.CANCELLED).orElse(false));
+
+            try (final Response startedOrderResponse = c.get("/api/partners/v1/orders/" + orderId))
+            {
+                assertThat(startedOrderResponse.isSuccessful()).isTrue();
+
+                try (final ResponseBody order = startedOrderResponse.body())
+                {
+                    assertThat(order).isNotNull();
+                    assertThatJson(order.string()).isEqualTo("""
+                                {
+                                    "id": "%s",
+                                    "status": "%s",
+                                    "started_at": "%s",
+                                    "updated_at": "%s",
+                                    "places_count": %s
+                                }
+                                """.formatted(
+                            orderId,
+                            "CANCELLED",
+                            DateTimeFormatter.ISO_INSTANT.format(startTime.truncatedTo(ChronoUnit.SECONDS)),
+                            DateTimeFormatter.ISO_INSTANT.format(cancelTime.truncatedTo(ChronoUnit.SECONDS)),
+                            1)
+                    );
+                }
             }
         });
     }

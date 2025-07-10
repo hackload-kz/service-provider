@@ -116,12 +116,35 @@ public final class OrdersProjectionsRepositoryPostgreSqlAdapter implements Order
     }
 
     @Override
-    public void orderConfirmed(final OrderId orderId, final Instant orderConfirmed)
+    public void orderConfirmed(final OrderId orderId, final Instant orderConfirmedAt)
     {
         try (final Connection connection = dataSource.getConnection();
              final PreparedStatement statement = connection.prepareStatement("UPDATE orders SET status = 'CONFIRMED', updated_at = ? WHERE id = ?"))
         {
-            statement.setObject(1, orderConfirmed.atOffset(ZoneOffset.UTC));
+            statement.setObject(1, orderConfirmedAt.atOffset(ZoneOffset.UTC));
+
+            final PGobject idParamPgObject = new PGobject();
+            idParamPgObject.setValue(orderId.value().toString());
+            idParamPgObject.setType("uuid");
+
+            statement.setObject(2, idParamPgObject);
+
+            statement.executeUpdate();
+        }
+        catch (final SQLException e)
+        {
+            // todo: replace with domain exception
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Override
+    public void orderCancelled(final OrderId orderId, final Instant orderCancelledAt)
+    {
+        try (final Connection connection = dataSource.getConnection();
+             final PreparedStatement statement = connection.prepareStatement("UPDATE orders SET status = 'CANCELLED', updated_at = ? WHERE id = ?"))
+        {
+            statement.setObject(1, orderCancelledAt.atOffset(ZoneOffset.UTC));
 
             final PGobject idParamPgObject = new PGobject();
             idParamPgObject.setValue(orderId.value().toString());

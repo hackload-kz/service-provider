@@ -68,9 +68,7 @@ public final class OrderEventsListener implements DomainEventsListener
             }
             case OrderSubmittedEvent e -> ordersProjectionService.orderSubmitted(orderId, e);
             case OrderConfirmedEvent e -> ordersProjectionService.orderConfirmed(orderId, e);
-            case OrderCancelledEvent e ->
-            {
-            }
+            case OrderCancelledEvent e -> ordersProjectionService.orderCancelled(orderId, e);
         }
     }
 

@@ -12,5 +12,7 @@ public interface OrdersProjectionsRepository
 
     void orderSubmitted(final OrderId orderId, final Instant submittedAt);
 
-    void orderConfirmed(final OrderId orderId, final Instant orderConfirmed);
+    void orderConfirmed(final OrderId orderId, final Instant orderConfirmedAt);
+
+    void orderCancelled(final OrderId orderId, final Instant cancelledAt);
 }

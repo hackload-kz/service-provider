@@ -1,5 +1,6 @@
 package kz.hackload.ticketing.service.provider.application;
 
+import kz.hackload.ticketing.service.provider.domain.orders.OrderCancelledEvent;
 import kz.hackload.ticketing.service.provider.domain.orders.OrderConfirmedEvent;
 import kz.hackload.ticketing.service.provider.domain.orders.OrderId;
 import kz.hackload.ticketing.service.provider.domain.orders.OrderStartedEvent;
@@ -40,5 +41,10 @@ public class OrdersProjectionService
     public void orderConfirmed(final OrderId orderId, final OrderConfirmedEvent e)
     {
         ordersQueryRepository.orderConfirmed(orderId, e.occurredOn());
+    }
+
+    public void orderCancelled(final OrderId orderId, final OrderCancelledEvent e)
+    {
+        ordersQueryRepository.orderCancelled(orderId, e.occurredOn());
     }
 }
