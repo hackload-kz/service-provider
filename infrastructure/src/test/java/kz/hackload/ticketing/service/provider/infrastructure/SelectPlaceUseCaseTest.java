@@ -21,6 +21,9 @@ import org.junit.jupiter.api.Test;
 
 import org.testcontainers.shaded.org.awaitility.Awaitility;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import kz.hackload.ticketing.service.provider.domain.orders.OrderId;
 import kz.hackload.ticketing.service.provider.domain.places.Place;
 import kz.hackload.ticketing.service.provider.domain.places.PlaceId;
@@ -31,10 +34,12 @@ import kz.hackload.ticketing.service.provider.infrastructure.adapters.incoming.h
 
 public class SelectPlaceUseCaseTest extends AbstractIntegrationTest
 {
+    private static final Logger LOG = LoggerFactory.getLogger(SelectPlaceUseCaseTest.class);
+
     @BeforeEach
     void setUp()
     {
-        new PlaceResourceJavalinHttpAdapter(server, selectPlaceUseCase, removePlaceFromOrderUseCase);
+        new PlaceResourceJavalinHttpAdapter(server, selectPlaceUseCase, removePlaceFromOrderUseCase, getPlaceUseCase);
         new OrderResourcesJavalinHttpAdapter(server, startOrderUseCase, submitOrderUseCase, confirmOrderUseCase, cancelOrderUseCase, getOrderUseCase);
     }
 
@@ -73,22 +78,23 @@ public class SelectPlaceUseCaseTest extends AbstractIntegrationTest
                 assertThat(actual.isFree()).isFalse();
                 assertThat(actual.selectedFor()).isPresent().get().isEqualTo(orderId);
                 assertThat(actual.isSelectedFor(orderId)).isTrue();
+            }
 
-                Awaitility.await()
-                        .atMost(Duration.ofSeconds(60L))
-                        .until(() -> transactionManager.executeInTransaction(() -> ordersRepository.findById(orderId)
-                                .map(order -> order.contains(placeId))
-                                .orElse(false))
-                        );
+            Awaitility.await()
+                    .atMost(Duration.ofSeconds(10L))
+                    .until(() -> transactionManager.executeInTransaction(() -> ordersRepository.findById(orderId)
+                            .map(order -> order.contains(placeId))
+                            .orElse(false))
+                    );
 
-                try (final Response startedOrderResponse = c.get("/api/partners/v1/orders/" + orderId))
+            try (final Response startedOrderResponse = c.get("/api/partners/v1/orders/" + orderId))
+            {
+                assertThat(startedOrderResponse.isSuccessful()).isTrue();
+
+                try (final ResponseBody order = startedOrderResponse.body())
                 {
-                    assertThat(startedOrderResponse.isSuccessful()).isTrue();
-
-                    try (final ResponseBody order = startedOrderResponse.body())
-                    {
-                        assertThat(order).isNotNull();
-                        assertThatJson(order.string()).isEqualTo("""
+                    assertThat(order).isNotNull();
+                    assertThatJson(order.string()).isEqualTo("""
                                 {
                                     "id": "%s",
                                     "status": "%s",
@@ -97,13 +103,38 @@ public class SelectPlaceUseCaseTest extends AbstractIntegrationTest
                                     "places_count": %s
                                 }
                                 """.formatted(
-                                        orderId,
-                                "STARTED",
-                                DateTimeFormatter.ISO_INSTANT.format(clocks.now().truncatedTo(ChronoUnit.SECONDS)),
-                                DateTimeFormatter.ISO_INSTANT.format(clocks.now().truncatedTo(ChronoUnit.SECONDS)),
-                                1)
-                        );
-                    }
+                            orderId,
+                            "STARTED",
+                            DateTimeFormatter.ISO_INSTANT.format(clocks.now().truncatedTo(ChronoUnit.SECONDS)),
+                            DateTimeFormatter.ISO_INSTANT.format(clocks.now().truncatedTo(ChronoUnit.SECONDS)),
+                            1)
+                    );
+                }
+            }
+
+            Awaitility.await()
+                    .atMost(Duration.ofSeconds(10L))
+                    .until(() -> transactionManager.executeInTransaction(() -> placesQueryRepository.getPlace(placeId)
+                            .map(order -> !order.isFree())
+                            .orElse(false))
+                    );
+
+            try (final Response startedOrderResponse = c.get("/api/partners/v1/places/" + placeId))
+            {
+                assertThat(startedOrderResponse.isSuccessful()).isTrue();
+
+                try (final ResponseBody place = startedOrderResponse.body())
+                {
+                    assertThat(place).isNotNull();
+                    assertThatJson(place.string()).isEqualTo("""
+                                {
+                                    "id": "%s",
+                                    "row": %s,
+                                    "seat": %s,
+                                    "is_free": %s
+                                }
+                                """.formatted(placeId, row, seat, false)
+                    );
                 }
             }
         });

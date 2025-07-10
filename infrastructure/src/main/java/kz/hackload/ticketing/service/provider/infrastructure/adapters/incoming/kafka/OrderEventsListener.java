@@ -52,11 +52,11 @@ public final class OrderEventsListener implements DomainEventsListener
         final OrderId orderId = new OrderId(UUID.fromString(record.key()));
         final String value = record.value();
 
-        final Class<?> eventType = mapToOrderDomainEventClass(
+        final Class<? extends OrderDomainEvent> eventType = mapToOrderDomainEventClass(
                 new String(record.headers().lastHeader("event_type").value(), StandardCharsets.UTF_8)
         );
 
-        final OrderDomainEvent event = (OrderDomainEvent) jsonMapper.fromJson(value, eventType);
+        final OrderDomainEvent event = jsonMapper.fromJson(value, eventType);
 
         switch (event)
         {

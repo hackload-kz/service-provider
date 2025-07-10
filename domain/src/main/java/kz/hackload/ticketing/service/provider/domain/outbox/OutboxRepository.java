@@ -1,6 +1,5 @@
 package kz.hackload.ticketing.service.provider.domain.outbox;
 
-import java.util.List;
 import java.util.Optional;
 
 public interface OutboxRepository
@@ -12,6 +11,4 @@ public interface OutboxRepository
     Optional<OutboxMessage> nextForDelivery();
 
     void delete(final OutboxMessageId id);
-
-    List<OutboxMessage> all();
 }

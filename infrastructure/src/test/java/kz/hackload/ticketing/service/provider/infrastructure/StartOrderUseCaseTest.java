@@ -11,11 +11,7 @@ import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.Map;
-import java.util.Optional;
 import java.util.UUID;
-
-import io.goodforgod.testcontainers.extensions.kafka.KafkaConnection;
-import io.goodforgod.testcontainers.extensions.kafka.ReceivedEvent;
 
 import io.javalin.testtools.JavalinTest;
 
@@ -27,9 +23,7 @@ import org.junit.jupiter.api.Test;
 
 import org.testcontainers.shaded.org.awaitility.Awaitility;
 
-import kz.hackload.ticketing.service.provider.domain.orders.Order;
 import kz.hackload.ticketing.service.provider.domain.orders.OrderId;
-import kz.hackload.ticketing.service.provider.domain.orders.OrderStatus;
 import kz.hackload.ticketing.service.provider.infrastructure.adapters.incoming.http.OrderResourcesJavalinHttpAdapter;
 import org.json.JSONObject;
 

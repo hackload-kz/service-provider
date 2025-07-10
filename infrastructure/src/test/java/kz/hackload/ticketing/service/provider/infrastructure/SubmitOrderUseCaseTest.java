@@ -20,7 +20,6 @@ import org.junit.jupiter.api.Test;
 
 import org.testcontainers.shaded.org.awaitility.Awaitility;
 
-import kz.hackload.ticketing.service.provider.domain.orders.Order;
 import kz.hackload.ticketing.service.provider.domain.orders.OrderId;
 import kz.hackload.ticketing.service.provider.domain.orders.OrderNotStartedException;
 import kz.hackload.ticketing.service.provider.domain.orders.OrderStatus;

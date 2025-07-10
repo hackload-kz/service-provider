@@ -1,5 +1,7 @@
 package kz.hackload.ticketing.service.provider.infrastructure.adapters.incoming.http;
 
+import java.util.UUID;
+
 import io.javalin.Javalin;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
@@ -7,6 +9,7 @@ import io.javalin.http.HttpStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import kz.hackload.ticketing.service.provider.application.GetPlaceUseCase;
 import kz.hackload.ticketing.service.provider.application.RemovePlaceFromOrderUseCase;
 import kz.hackload.ticketing.service.provider.application.SelectPlaceUseCase;
 import kz.hackload.ticketing.service.provider.domain.orders.OrderNotStartedException;
@@ -14,6 +17,7 @@ import kz.hackload.ticketing.service.provider.domain.orders.PlaceNotAddedExcepti
 import kz.hackload.ticketing.service.provider.domain.orders.PlaceSelectedForAnotherOrderException;
 import kz.hackload.ticketing.service.provider.domain.places.PlaceAlreadySelectedException;
 import kz.hackload.ticketing.service.provider.domain.places.PlaceCanNotBeAddedToOrderException;
+import kz.hackload.ticketing.service.provider.domain.places.PlaceId;
 
 public final class PlaceResourceJavalinHttpAdapter
 {
@@ -21,14 +25,20 @@ public final class PlaceResourceJavalinHttpAdapter
 
     private final SelectPlaceUseCase selectPlaceUseCase;
     private final RemovePlaceFromOrderUseCase removePlaceFromOrderUseCase;
+    private final GetPlaceUseCase getPlaceUseCase;
 
-    public PlaceResourceJavalinHttpAdapter(final Javalin app, final SelectPlaceUseCase selectPlaceUseCase, final RemovePlaceFromOrderUseCase removePlaceFromOrderUseCase)
+    public PlaceResourceJavalinHttpAdapter(final Javalin app,
+                                           final SelectPlaceUseCase selectPlaceUseCase,
+                                           final RemovePlaceFromOrderUseCase removePlaceFromOrderUseCase,
+                                           final GetPlaceUseCase getPlaceUseCase)
     {
         this.selectPlaceUseCase = selectPlaceUseCase;
         this.removePlaceFromOrderUseCase = removePlaceFromOrderUseCase;
+        this.getPlaceUseCase = getPlaceUseCase;
 
         app.patch("/api/partners/v1/places/{id}/select", this::selectPlace);
         app.patch("/api/partners/v1/places/{id}/release", this::releasePlace);
+        app.get("/api/partners/v1/places/{id}", this::getPlace);
     }
 
     private void selectPlace(final Context context)
@@ -67,6 +77,32 @@ public final class PlaceResourceJavalinHttpAdapter
         catch (final PlaceSelectedForAnotherOrderException e)
         {
             context.status(HttpStatus.FORBIDDEN);
+        }
+        catch (final RuntimeException e)
+        {
+            LOG.error(e.getMessage(), e);
+            context.status(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    private void getPlace(final Context context)
+    {
+        final PlaceId placeId = new PlaceId(UUID.fromString(context.pathParam("id")));
+
+        try
+        {
+            getPlaceUseCase.getPlace(placeId).ifPresentOrElse(place ->
+            {
+                context.json("""
+                        {
+                            "id": "%s",
+                            "row": %s,
+                            "seat": %s,
+                            "is_free": %s
+                        }
+                        """.formatted(place.placeId(), place.row(), place.seat(), place.isFree()));
+                context.status(HttpStatus.OK);
+            }, () -> context.status(HttpStatus.NOT_FOUND));
         }
         catch (final RuntimeException e)
         {

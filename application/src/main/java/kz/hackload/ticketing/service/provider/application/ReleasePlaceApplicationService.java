@@ -18,16 +18,19 @@ public final class ReleasePlaceApplicationService implements ReleasePlaceUseCase
     private final PlacesRepository placesRepository;
 
     private final ReleasePlaceService releasePlaceService;
+    private final EventsDispatcher eventsDispatcher;
 
     public ReleasePlaceApplicationService(final TransactionManager transactionManager,
                                           final OrdersRepository ordersRepository,
                                           final PlacesRepository placesRepository,
-                                          final ReleasePlaceService releasePlaceService)
+                                          final ReleasePlaceService releasePlaceService,
+                                          final EventsDispatcher eventsDispatcher)
     {
         this.transactionManager = transactionManager;
         this.ordersRepository = ordersRepository;
         this.placesRepository = placesRepository;
         this.releasePlaceService = releasePlaceService;
+        this.eventsDispatcher = eventsDispatcher;
     }
 
     @Override
@@ -40,6 +43,10 @@ public final class ReleasePlaceApplicationService implements ReleasePlaceUseCase
 
         releasePlaceService.release(order, place);
 
-        transactionManager.executeInTransaction(() -> placesRepository.save(place));
+        transactionManager.executeInTransaction(() ->
+        {
+            eventsDispatcher.dispatch(placeId, place.uncommittedEvents());
+            placesRepository.save(place);
+        });
     }
 }

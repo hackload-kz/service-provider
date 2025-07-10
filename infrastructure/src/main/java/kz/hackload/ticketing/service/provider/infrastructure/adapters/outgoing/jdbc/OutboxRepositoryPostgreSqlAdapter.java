@@ -3,8 +3,9 @@ package kz.hackload.ticketing.service.provider.infrastructure.adapters.outgoing.
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.List;
+import java.time.Instant;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
@@ -35,7 +36,7 @@ public final class OutboxRepositoryPostgreSqlAdapter implements OutboxRepository
     {
         final Connection connection = transactionManager.currentConnection();
 
-        try (final var statement = connection.prepareStatement("INSERT INTO outbox(id, topic, aggregate_id, aggregate_revision, aggregate_type, event_type, payload) VALUES (?, ?, ?, ?, ?, ?, ?)"))
+        try (final var statement = connection.prepareStatement("INSERT INTO outbox(id, topic, aggregate_id, occurred_on, aggregate_type, event_type, payload) VALUES (?, ?, ?, ?, ?, ?, ?)"))
         {
             final PGobject idPgObject = new PGobject();
             idPgObject.setValue(outboxMessage.id().value().toString());
@@ -44,7 +45,7 @@ public final class OutboxRepositoryPostgreSqlAdapter implements OutboxRepository
             statement.setObject(1, idPgObject);
             statement.setString(2, outboxMessage.topic());
             statement.setString(3, outboxMessage.aggregateId());
-            statement.setLong(4, outboxMessage.aggregateRevision());
+            statement.setObject(4, outboxMessage.occurredOn().atOffset(ZoneOffset.UTC));
             statement.setString(5, outboxMessage.aggregateType());
             statement.setString(6, outboxMessage.eventType());
 
@@ -69,7 +70,7 @@ public final class OutboxRepositoryPostgreSqlAdapter implements OutboxRepository
         final Connection connection = transactionManager.currentConnection();
 
         // TODO: pessimistic write lock and skip locked
-        try (final var statement = connection.prepareStatement("SELECT * FROM outbox FOR UPDATE SKIP LOCKED"))
+        try (final var statement = connection.prepareStatement("SELECT * FROM outbox ORDER BY occurred_on FOR UPDATE SKIP LOCKED LIMIT 1"))
         {
             try (final ResultSet rs = statement.executeQuery())
             {
@@ -79,13 +80,13 @@ public final class OutboxRepositoryPostgreSqlAdapter implements OutboxRepository
                     final String topic = rs.getString("topic");
                     final String aggregateId = rs.getString("aggregate_id");
                     final String aggregateType = rs.getString("aggregate_type");
-                    final long aggregateRevision = rs.getLong("aggregate_revision");
+                    final Instant occurredOn = rs.getObject("occurred_on", OffsetDateTime.class).toInstant();
                     final String eventType = rs.getString("event_type");
 
                     final PGobject pGobject = (PGobject) rs.getObject("payload");
                     final String payload = pGobject.getValue();
 
-                    return Optional.of(new OutboxMessage(new OutboxMessageId(id), topic, aggregateId, aggregateRevision, aggregateType, eventType, payload));
+                    return Optional.of(new OutboxMessage(new OutboxMessageId(id), topic, aggregateId, occurredOn, aggregateType, eventType, payload));
                 }
                 else
                 {
@@ -119,40 +120,5 @@ public final class OutboxRepositoryPostgreSqlAdapter implements OutboxRepository
             // todo: replace with domain exception
             throw new RuntimeException(e);
         }
-    }
-
-    @Override
-    public List<OutboxMessage> all()
-    {
-        final Connection connection = transactionManager.currentConnection();
-
-        List<OutboxMessage> outboxMessages = new ArrayList<>();
-
-        // TODO: pessimistic write lock and skip locked
-        try (final var statement = connection.prepareStatement("SELECT * FROM outbox"))
-        {
-            try (final ResultSet rs = statement.executeQuery())
-            {
-                if (rs.next())
-                {
-                    final UUID id = (UUID) rs.getObject("id");
-                    final String topic = rs.getString("topic");
-                    final String aggregateId = rs.getString("aggregate_id");
-                    final String aggregateType = rs.getString("aggregate_type");
-                    final long aggregateRevision = rs.getLong("aggregate_revision");
-                    final String eventType = rs.getString("event_type");
-                    final PGobject pGobject = (PGobject) rs.getObject("payload");
-                    final String payload = pGobject.getValue();
-
-                    outboxMessages.add(new OutboxMessage(new OutboxMessageId(id), topic, aggregateId, aggregateRevision, aggregateType, eventType, payload));
-                }
-            }
-        }
-        catch (final SQLException e)
-        {
-            throw new RuntimeException(e);
-        }
-
-        return outboxMessages;
     }
 }

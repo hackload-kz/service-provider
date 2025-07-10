@@ -37,11 +37,14 @@ import kz.hackload.ticketing.service.provider.application.CreatePlaceApplication
 import kz.hackload.ticketing.service.provider.application.CreatePlaceUseCase;
 import kz.hackload.ticketing.service.provider.application.EventsDispatcher;
 import kz.hackload.ticketing.service.provider.application.GetOrderUseCase;
+import kz.hackload.ticketing.service.provider.application.GetPlaceUseCase;
 import kz.hackload.ticketing.service.provider.application.JsonMapper;
 import kz.hackload.ticketing.service.provider.application.OrdersProjectionService;
 import kz.hackload.ticketing.service.provider.application.OrdersQueryService;
 import kz.hackload.ticketing.service.provider.application.OutboxScheduler;
 import kz.hackload.ticketing.service.provider.application.OutboxSender;
+import kz.hackload.ticketing.service.provider.application.PlacesProjectionService;
+import kz.hackload.ticketing.service.provider.application.PlacesQueryService;
 import kz.hackload.ticketing.service.provider.application.ReleasePlaceApplicationService;
 import kz.hackload.ticketing.service.provider.application.ReleasePlaceUseCase;
 import kz.hackload.ticketing.service.provider.application.RemovePlaceFromOrderFromOrderApplicationService;
@@ -59,6 +62,8 @@ import kz.hackload.ticketing.service.provider.domain.orders.OrdersRepository;
 import kz.hackload.ticketing.service.provider.domain.orders.ReleasePlaceService;
 import kz.hackload.ticketing.service.provider.domain.orders.RemovePlaceFromOrderService;
 import kz.hackload.ticketing.service.provider.domain.outbox.OutboxRepository;
+import kz.hackload.ticketing.service.provider.domain.places.PlacesProjectionsRepository;
+import kz.hackload.ticketing.service.provider.domain.places.PlacesQueryRepository;
 import kz.hackload.ticketing.service.provider.domain.places.PlacesRepository;
 import kz.hackload.ticketing.service.provider.domain.places.SelectPlaceService;
 import kz.hackload.ticketing.service.provider.infrastructure.adapters.JacksonJsonMapper;
@@ -70,8 +75,10 @@ import kz.hackload.ticketing.service.provider.infrastructure.adapters.outgoing.j
 import kz.hackload.ticketing.service.provider.infrastructure.adapters.outgoing.jdbc.OrdersQueryRepositoryPostgreSqlAdapter;
 import kz.hackload.ticketing.service.provider.infrastructure.adapters.outgoing.jdbc.OrdersRepositoryPostgreSqlAdapter;
 import kz.hackload.ticketing.service.provider.infrastructure.adapters.outgoing.jdbc.OutboxRepositoryPostgreSqlAdapter;
-import kz.hackload.ticketing.service.provider.infrastructure.adapters.outgoing.kafka.OutboxSenderKafkaAdapter;
+import kz.hackload.ticketing.service.provider.infrastructure.adapters.outgoing.jdbc.PlacesProjectionsRepositoryPostgreSqlAdapter;
+import kz.hackload.ticketing.service.provider.infrastructure.adapters.outgoing.jdbc.PlacesQueryRepositoryPostgreSqlAdapter;
 import kz.hackload.ticketing.service.provider.infrastructure.adapters.outgoing.jdbc.PlacesRepositoryPostgreSqlAdapter;
+import kz.hackload.ticketing.service.provider.infrastructure.adapters.outgoing.kafka.OutboxSenderKafkaAdapter;
 
 @TestcontainersPostgreSQL(mode = ContainerMode.PER_METHOD)
 @TestcontainersKafka(mode = ContainerMode.PER_RUN,
@@ -93,7 +100,9 @@ public abstract class AbstractIntegrationTest
     protected OutboxRepository outboxRepository;
     protected PlacesRepository placesRepository;
     protected OrdersQueryRepository ordersQueryRepository;
+    protected PlacesQueryRepository placesQueryRepository;
     protected OrdersProjectionsRepository ordersProjectionsRepository;
+    protected PlacesProjectionsRepository placesProjectionsRepository;
 
     protected CreatePlaceUseCase createPlaceUseCase;
     protected StartOrderUseCase startOrderUseCase;
@@ -105,6 +114,7 @@ public abstract class AbstractIntegrationTest
     protected ConfirmOrderUseCase confirmOrderUseCase;
     protected CancelOrderUseCase cancelOrderUseCase;
     protected GetOrderUseCase getOrderUseCase;
+    protected GetPlaceUseCase getPlaceUseCase;
 
     protected OutboxScheduler outboxScheduler;
     private KafkaMessagesListener placeEventskafkaMessagesListener;
@@ -127,23 +137,31 @@ public abstract class AbstractIntegrationTest
 
                 create table public.outbox
                 (
-                    id                 uuid primary key,
-                    topic              varchar(255) not null,
-                    aggregate_id       varchar(255) not null,
-                    aggregate_revision bigint       not null,
-                    aggregate_type     varchar(255) not null,
-                    event_type         varchar(255) not null,
-                    payload            jsonb        not null
+                    id             uuid primary key,
+                    topic          varchar(255)             not null,
+                    aggregate_id   varchar(255)             not null,
+                    occurred_on    timestamp with time zone not null,
+                    aggregate_type varchar(255)             not null,
+                    event_type     varchar(255)             not null,
+                    payload        jsonb                    not null
                 );
 
                 create table public.orders
                 (
-                    id           uuid                     not null,
+                    id           uuid primary key         not null,
                     status       varchar(255)             not null,
                     places_count int                      not null,
                     started_at   timestamp with time zone not null,
-                    updated_at   timestamp with time zone not null,
+                    updated_at    timestamp with time zone not null,
                     revision     bigint                   not null
+                );
+
+                create table places
+                (
+                    id      uuid primary key not null,
+                    row     int              not null,
+                    seat    int              not null,
+                    is_free bool             not null
                 );
                 """
         );
@@ -152,6 +170,7 @@ public abstract class AbstractIntegrationTest
         hikariConfig.setJdbcUrl(postgresConnection.params().jdbcUrl());
         hikariConfig.setUsername(postgresConnection.params().username());
         hikariConfig.setPassword(postgresConnection.params().password());
+        hikariConfig.setMaximumPoolSize(20);
 
         final DataSource dataSource = new HikariDataSource(hikariConfig);
 
@@ -160,7 +179,9 @@ public abstract class AbstractIntegrationTest
         outboxRepository = new OutboxRepositoryPostgreSqlAdapter(transactionManager);
         placesRepository = new PlacesRepositoryPostgreSqlAdapter(transactionManager);
         ordersQueryRepository = new OrdersQueryRepositoryPostgreSqlAdapter(dataSource);
+        placesQueryRepository = new PlacesQueryRepositoryPostgreSqlAdapter(dataSource);
         ordersProjectionsRepository = new OrdersProjectionsRepositoryPostgreSqlAdapter(dataSource);
+        placesProjectionsRepository = new PlacesProjectionsRepositoryPostgreSqlAdapter(dataSource);
 
         final SelectPlaceService selectPlaceService = new SelectPlaceService(clocks);
         final AddPlaceToOrderService addPlaceToOrderService = new AddPlaceToOrderService(clocks);
@@ -169,16 +190,17 @@ public abstract class AbstractIntegrationTest
 
         final EventsDispatcher eventsDispatcher = new EventsDispatcher(jsonMapper, outboxRepository);
 
-        createPlaceUseCase = new CreatePlaceApplicationService(clocks, transactionManager, placesRepository);
+        createPlaceUseCase = new CreatePlaceApplicationService(clocks, transactionManager, placesRepository, eventsDispatcher);
         startOrderUseCase = new StartOrderApplicationService(clocks, transactionManager, ordersRepository, eventsDispatcher);
         selectPlaceUseCase = new SelectPlaceApplicationService(selectPlaceService, transactionManager, placesRepository, ordersRepository, eventsDispatcher);
-        releasePlaceUseCase = new ReleasePlaceApplicationService(transactionManager, ordersRepository, placesRepository, releasePlaceService);
+        releasePlaceUseCase = new ReleasePlaceApplicationService(transactionManager, ordersRepository, placesRepository, releasePlaceService, eventsDispatcher);
         submitOrderUseCase = new SubmitOrderApplicationService(clocks, transactionManager, ordersRepository, eventsDispatcher);
         addPlaceToOrderUseCase = new AddPlaceToOrderApplicationService(transactionManager, ordersRepository, placesRepository, addPlaceToOrderService, eventsDispatcher);
         removePlaceFromOrderUseCase = new RemovePlaceFromOrderFromOrderApplicationService(transactionManager, placesRepository, ordersRepository, eventsDispatcher, removePlaceFromOrderService);
         confirmOrderUseCase = new ConfirmOrderApplicationService(clocks, transactionManager, ordersRepository, eventsDispatcher);
         cancelOrderUseCase = new CancelOrderApplicationService(clocks, transactionManager, ordersRepository, eventsDispatcher);
         getOrderUseCase = new OrdersQueryService(ordersQueryRepository);
+        getPlaceUseCase = new PlacesQueryService(placesQueryRepository);
 
         final Properties properties = new Properties();
         properties.put(ProducerConfig.ACKS_CONFIG, "all");
@@ -194,7 +216,8 @@ public abstract class AbstractIntegrationTest
         final OutboxSender outboxSender = new OutboxSenderKafkaAdapter(producer);
         outboxScheduler = new OutboxScheduler(transactionManager, outboxRepository, outboxSender);
 
-        final PlaceEventsListener placeEventsListener = new PlaceEventsListener(jsonMapper, addPlaceToOrderUseCase);
+        final PlacesProjectionService placesProjectionService = new PlacesProjectionService(placesProjectionsRepository);
+        final PlaceEventsListener placeEventsListener = new PlaceEventsListener(jsonMapper, placesProjectionService, addPlaceToOrderUseCase);
         final KafkaConsumer<String, String> consumer = new KafkaConsumer<>(properties);
         placeEventskafkaMessagesListener = new KafkaMessagesListener(consumer, "place-events", placeEventsListener);
 

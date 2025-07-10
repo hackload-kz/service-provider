@@ -9,7 +9,7 @@ import kz.hackload.ticketing.service.provider.domain.orders.OrdersProjectionsRep
 import kz.hackload.ticketing.service.provider.domain.orders.PlaceAddedToOrderEvent;
 import kz.hackload.ticketing.service.provider.domain.orders.PlaceRemovedFromOrderEvent;
 
-public class OrdersProjectionService
+public final class OrdersProjectionService
 {
     private final OrdersProjectionsRepository ordersQueryRepository;
 

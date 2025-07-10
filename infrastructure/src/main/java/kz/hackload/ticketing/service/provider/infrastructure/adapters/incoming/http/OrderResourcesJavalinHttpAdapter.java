@@ -138,7 +138,7 @@ public class OrderResourcesJavalinHttpAdapter
 
         try
         {
-            getOrderUseCase.order(orderId).ifPresentOrElse(order ->
+            getOrderUseCase.getOrder(orderId).ifPresentOrElse(order ->
                     {
                         context.json("""
                                 {

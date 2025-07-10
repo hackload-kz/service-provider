@@ -7,5 +7,5 @@ import kz.hackload.ticketing.service.provider.domain.orders.OrderId;
 
 public interface GetOrderUseCase
 {
-    Optional<GetOrderQueryResult> order(final OrderId orderId);
+    Optional<GetOrderQueryResult> getOrder(final OrderId orderId);
 }

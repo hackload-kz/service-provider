@@ -27,11 +27,14 @@ import kz.hackload.ticketing.service.provider.application.ConfirmOrderApplicatio
 import kz.hackload.ticketing.service.provider.application.ConfirmOrderUseCase;
 import kz.hackload.ticketing.service.provider.application.EventsDispatcher;
 import kz.hackload.ticketing.service.provider.application.GetOrderUseCase;
+import kz.hackload.ticketing.service.provider.application.GetPlaceUseCase;
 import kz.hackload.ticketing.service.provider.application.JsonMapper;
 import kz.hackload.ticketing.service.provider.application.OrdersProjectionService;
 import kz.hackload.ticketing.service.provider.application.OrdersQueryService;
 import kz.hackload.ticketing.service.provider.application.OutboxScheduler;
 import kz.hackload.ticketing.service.provider.application.OutboxSender;
+import kz.hackload.ticketing.service.provider.application.PlacesProjectionService;
+import kz.hackload.ticketing.service.provider.application.PlacesQueryService;
 import kz.hackload.ticketing.service.provider.application.ReleasePlaceApplicationService;
 import kz.hackload.ticketing.service.provider.application.ReleasePlaceUseCase;
 import kz.hackload.ticketing.service.provider.application.RemovePlaceFromOrderFromOrderApplicationService;
@@ -51,6 +54,8 @@ import kz.hackload.ticketing.service.provider.domain.orders.OrdersRepository;
 import kz.hackload.ticketing.service.provider.domain.orders.ReleasePlaceService;
 import kz.hackload.ticketing.service.provider.domain.orders.RemovePlaceFromOrderService;
 import kz.hackload.ticketing.service.provider.domain.outbox.OutboxRepository;
+import kz.hackload.ticketing.service.provider.domain.places.PlacesProjectionsRepository;
+import kz.hackload.ticketing.service.provider.domain.places.PlacesQueryRepository;
 import kz.hackload.ticketing.service.provider.domain.places.PlacesRepository;
 import kz.hackload.ticketing.service.provider.domain.places.SelectPlaceService;
 import kz.hackload.ticketing.service.provider.infrastructure.adapters.incoming.http.OrderResourcesJavalinHttpAdapter;
@@ -63,6 +68,8 @@ import kz.hackload.ticketing.service.provider.infrastructure.adapters.outgoing.j
 import kz.hackload.ticketing.service.provider.infrastructure.adapters.outgoing.jdbc.OrdersQueryRepositoryPostgreSqlAdapter;
 import kz.hackload.ticketing.service.provider.infrastructure.adapters.outgoing.jdbc.OrdersRepositoryPostgreSqlAdapter;
 import kz.hackload.ticketing.service.provider.infrastructure.adapters.outgoing.jdbc.OutboxRepositoryPostgreSqlAdapter;
+import kz.hackload.ticketing.service.provider.infrastructure.adapters.outgoing.jdbc.PlacesProjectionsRepositoryPostgreSqlAdapter;
+import kz.hackload.ticketing.service.provider.infrastructure.adapters.outgoing.jdbc.PlacesQueryRepositoryPostgreSqlAdapter;
 import kz.hackload.ticketing.service.provider.infrastructure.adapters.outgoing.jdbc.PlacesRepositoryPostgreSqlAdapter;
 import kz.hackload.ticketing.service.provider.infrastructure.adapters.outgoing.kafka.OutboxSenderKafkaAdapter;
 
@@ -78,6 +85,7 @@ public final class ApplicationRunner
         hikariConfig.setJdbcUrl("jdbc:postgresql://localhost:5432/hackload_ticketing_sp");
         hikariConfig.setUsername("hackload_ticketing_sp");
         hikariConfig.setPassword("hackload_ticketing_sp");
+        hikariConfig.setMaximumPoolSize(16);
 
         final DataSource dataSource = new HikariDataSource(hikariConfig);
         final JdbcTransactionManager jdbcTransactionManager = new JdbcTransactionManager(dataSource);
@@ -86,7 +94,9 @@ public final class ApplicationRunner
         final PlacesRepository placesRepository = new PlacesRepositoryPostgreSqlAdapter(jdbcTransactionManager);
         final OutboxRepository outboxRepository = new OutboxRepositoryPostgreSqlAdapter(jdbcTransactionManager);
         final OrdersQueryRepository ordersQueryRepository = new OrdersQueryRepositoryPostgreSqlAdapter(dataSource);
-        final OrdersProjectionsRepository ordersProjectionsRepository = new OrdersProjectionsRepositoryPostgreSqlAdapter(dataSource);;
+        final PlacesQueryRepository placesQueryRepository = new PlacesQueryRepositoryPostgreSqlAdapter(dataSource);
+        final OrdersProjectionsRepository ordersProjectionsRepository = new OrdersProjectionsRepositoryPostgreSqlAdapter(dataSource);
+        final PlacesProjectionsRepository placesProjectionsRepository = new PlacesProjectionsRepositoryPostgreSqlAdapter(dataSource);
 
         final Clocks clocks = new RealClock();
         final JsonMapper jsonMapper = new JacksonJsonMapper();
@@ -104,9 +114,10 @@ public final class ApplicationRunner
 
         final SelectPlaceUseCase selectPlaceUseCase = new SelectPlaceApplicationService(selectPlaceService, jdbcTransactionManager, placesRepository, ordersRepository, eventsDispatcher);
         final RemovePlaceFromOrderUseCase removePlaceFromOrderUseCase = new RemovePlaceFromOrderFromOrderApplicationService(jdbcTransactionManager, placesRepository, ordersRepository, eventsDispatcher, removePlaceFromOrderService);
-        final ReleasePlaceUseCase releasePlaceUseCase = new ReleasePlaceApplicationService(jdbcTransactionManager, ordersRepository, placesRepository, releasePlaceService);
+        final ReleasePlaceUseCase releasePlaceUseCase = new ReleasePlaceApplicationService(jdbcTransactionManager, ordersRepository, placesRepository, releasePlaceService, eventsDispatcher);
         final AddPlaceToOrderUseCase addPlaceToOrderUseCase = new AddPlaceToOrderApplicationService(jdbcTransactionManager, ordersRepository, placesRepository, addPlaceToOrderService, eventsDispatcher);
         final GetOrderUseCase getOrderUseCase = new OrdersQueryService(ordersQueryRepository);
+        final GetPlaceUseCase getPlaceUseCase = new PlacesQueryService(placesQueryRepository);
 
         final Properties properties = new Properties();
         properties.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, "127.0.0.1:9092,127.0.0.1:9095,127.0.0.1:9098");
@@ -119,8 +130,9 @@ public final class ApplicationRunner
         properties.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringDeserializer");
         properties.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringDeserializer");
 
+        final PlacesProjectionService placesProjectionService = new PlacesProjectionService(placesProjectionsRepository);
         final KafkaConsumer<String, String> placeEventsKafkaConsumer = new KafkaConsumer<>(properties);
-        final PlaceEventsListener placeEventsListener = new PlaceEventsListener(jsonMapper, addPlaceToOrderUseCase);
+        final PlaceEventsListener placeEventsListener = new PlaceEventsListener(jsonMapper, placesProjectionService, addPlaceToOrderUseCase);
         final KafkaMessagesListener placeEventsKafkaMessagesListener = new KafkaMessagesListener(placeEventsKafkaConsumer, "place-events", placeEventsListener);
         placeEventsKafkaMessagesListener.start();
 
@@ -137,7 +149,7 @@ public final class ApplicationRunner
 
         final Javalin httpServer = Javalin.create();
         new OrderResourcesJavalinHttpAdapter(httpServer, startOrderUseCase, submitOrderUseCase, confirmOrderUseCase, cancelOrderUseCase, getOrderUseCase);
-        new PlaceResourceJavalinHttpAdapter(httpServer, selectPlaceUseCase, removePlaceFromOrderUseCase);
+        new PlaceResourceJavalinHttpAdapter(httpServer, selectPlaceUseCase, removePlaceFromOrderUseCase, getPlaceUseCase);
 
         httpServer.start();
 

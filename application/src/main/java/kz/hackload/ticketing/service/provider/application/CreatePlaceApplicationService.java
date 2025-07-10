@@ -12,14 +12,17 @@ public final class CreatePlaceApplicationService implements CreatePlaceUseCase
     private final Clocks clocks;
     private final TransactionManager transactionManager;
     private final PlacesRepository repository;
+    private final EventsDispatcher eventsDispatcher;
 
     public CreatePlaceApplicationService(final Clocks clocks,
                                          final TransactionManager transactionManager,
-                                         final PlacesRepository repository)
+                                         final PlacesRepository repository,
+                                         final EventsDispatcher eventsDispatcher)
     {
         this.clocks = clocks;
         this.transactionManager = transactionManager;
         this.repository = repository;
+        this.eventsDispatcher = eventsDispatcher;
     }
 
     @Override
@@ -28,7 +31,11 @@ public final class CreatePlaceApplicationService implements CreatePlaceUseCase
         final PlaceId placeId = repository.nextId();
         final Place place = Place.create(clocks.now(), placeId, row, seat);
 
-        transactionManager.executeInTransaction(() -> repository.save(place));
+        transactionManager.executeInTransaction(() ->
+        {
+            eventsDispatcher.dispatch(placeId, place.uncommittedEvents());
+            repository.save(place);
+        });
 
         return placeId;
     }

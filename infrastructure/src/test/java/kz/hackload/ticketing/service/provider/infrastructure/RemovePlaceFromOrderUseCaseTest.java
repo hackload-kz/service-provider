@@ -37,7 +37,7 @@ public class RemovePlaceFromOrderUseCaseTest extends AbstractIntegrationTest
     @BeforeEach
     void setUp()
     {
-        new PlaceResourceJavalinHttpAdapter(server, selectPlaceUseCase, removePlaceFromOrderUseCase);
+        new PlaceResourceJavalinHttpAdapter(server, selectPlaceUseCase, removePlaceFromOrderUseCase, getPlaceUseCase);
         new OrderResourcesJavalinHttpAdapter(server, startOrderUseCase, submitOrderUseCase, confirmOrderUseCase, cancelOrderUseCase, getOrderUseCase);
     }
 

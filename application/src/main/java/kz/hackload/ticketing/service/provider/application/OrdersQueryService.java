@@ -16,7 +16,7 @@ public final class OrdersQueryService implements GetOrderUseCase
     }
 
     @Override
-    public Optional<GetOrderQueryResult> order(final OrderId orderId)
+    public Optional<GetOrderQueryResult> getOrder(final OrderId orderId)
     {
         return ordersRepository.getOrder(orderId);
     }
