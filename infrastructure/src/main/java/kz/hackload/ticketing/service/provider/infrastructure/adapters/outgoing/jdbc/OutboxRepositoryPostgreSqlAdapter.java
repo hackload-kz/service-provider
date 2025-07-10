@@ -69,8 +69,7 @@ public final class OutboxRepositoryPostgreSqlAdapter implements OutboxRepository
     {
         final Connection connection = transactionManager.currentConnection();
 
-        // TODO: pessimistic write lock and skip locked
-        try (final var statement = connection.prepareStatement("SELECT * FROM outbox ORDER BY occurred_on FOR UPDATE SKIP LOCKED LIMIT 1"))
+        try (final var statement = connection.prepareStatement("SELECT * FROM outbox ORDER BY occurred_on FOR UPDATE LIMIT 1"))
         {
             try (final ResultSet rs = statement.executeQuery())
             {
