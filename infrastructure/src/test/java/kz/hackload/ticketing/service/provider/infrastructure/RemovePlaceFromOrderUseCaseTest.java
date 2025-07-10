@@ -23,6 +23,7 @@ import org.testcontainers.shaded.org.awaitility.Awaitility;
 
 import kz.hackload.ticketing.service.provider.domain.orders.Order;
 import kz.hackload.ticketing.service.provider.domain.orders.OrderId;
+import kz.hackload.ticketing.service.provider.domain.places.GetPlaceQueryResult;
 import kz.hackload.ticketing.service.provider.domain.places.Place;
 import kz.hackload.ticketing.service.provider.domain.places.PlaceAlreadySelectedException;
 import kz.hackload.ticketing.service.provider.domain.places.PlaceCanNotBeAddedToOrderException;
@@ -83,22 +84,23 @@ public class RemovePlaceFromOrderUseCaseTest extends AbstractIntegrationTest
 
                 assertThat(actual.contains(placeId)).isFalse();
                 assertThat(actual.places()).isEmpty();
+            }
 
-                Awaitility.await()
-                        .atMost(Duration.ofSeconds(60L))
-                        .until(() -> transactionManager.executeInTransaction(() -> placesRepository.findById(placeId)
-                                .map(Place::isFree)
-                                .orElse(false))
-                        );
+            Awaitility.await()
+                    .atMost(Duration.ofSeconds(10L))
+                    .until(() -> transactionManager.executeInTransaction(() -> placesRepository.findById(placeId)
+                            .map(Place::isFree)
+                            .orElse(false))
+                    );
 
-                try (final Response startedOrderResponse = c.get("/api/partners/v1/orders/" + orderId))
+            try (final Response startedOrderResponse = c.get("/api/partners/v1/orders/" + orderId))
+            {
+                assertThat(startedOrderResponse.isSuccessful()).isTrue();
+
+                try (final ResponseBody order = startedOrderResponse.body())
                 {
-                    assertThat(startedOrderResponse.isSuccessful()).isTrue();
-
-                    try (final ResponseBody order = startedOrderResponse.body())
-                    {
-                        assertThat(order).isNotNull();
-                        assertThatJson(order.string()).isEqualTo("""
+                    assertThat(order).isNotNull();
+                    assertThatJson(order.string()).isEqualTo("""
                                 {
                                     "id": "%s",
                                     "status": "%s",
@@ -107,25 +109,39 @@ public class RemovePlaceFromOrderUseCaseTest extends AbstractIntegrationTest
                                     "places_count": %s
                                 }
                                 """.formatted(
-                                orderId,
-                                "STARTED",
-                                DateTimeFormatter.ISO_INSTANT.format(clocks.now().truncatedTo(ChronoUnit.SECONDS)),
-                                DateTimeFormatter.ISO_INSTANT.format(clocks.now().truncatedTo(ChronoUnit.SECONDS)),
-                                0)
-                        );
-                    }
+                            orderId,
+                            "STARTED",
+                            DateTimeFormatter.ISO_INSTANT.format(clocks.now().truncatedTo(ChronoUnit.SECONDS)),
+                            DateTimeFormatter.ISO_INSTANT.format(clocks.now().truncatedTo(ChronoUnit.SECONDS)),
+                            0)
+                    );
                 }
+            }
 
-                final Optional<Place> optionalPlace = transactionManager.executeInTransaction(() -> placesRepository.findById(placeId));
+            Awaitility.await()
+                    .atMost(Duration.ofSeconds(10L))
+                    .until(() -> transactionManager.executeInTransaction(() -> placesQueryRepository.getPlace(placeId)
+                            .map(GetPlaceQueryResult::isFree)
+                            .orElse(false))
+                    );
 
-                final Place place = assertThat(optionalPlace)
-                        .isPresent()
-                        .get()
-                        .actual();
+            try (final Response startedOrderResponse = c.get("/api/partners/v1/places/" + placeId))
+            {
+                assertThat(startedOrderResponse.isSuccessful()).isTrue();
 
-                assertThat(place.isFree()).isTrue();
-                assertThat(place.selectedFor()).isEmpty();
-                assertThat(place.isSelectedFor(orderId)).isFalse();
+                try (final ResponseBody place = startedOrderResponse.body())
+                {
+                    assertThat(place).isNotNull();
+                    assertThatJson(place.string()).isEqualTo("""
+                                {
+                                    "id": "%s",
+                                    "row": %s,
+                                    "seat": %s,
+                                    "is_free": %s
+                                }
+                                """.formatted(placeId, row, seat, true)
+                    );
+                }
             }
         });
     }
