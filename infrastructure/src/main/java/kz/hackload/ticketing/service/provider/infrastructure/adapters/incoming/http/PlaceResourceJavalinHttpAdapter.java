@@ -9,6 +9,7 @@ import io.javalin.http.HttpStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import kz.hackload.ticketing.service.provider.application.CreatePlaceUseCase;
 import kz.hackload.ticketing.service.provider.application.GetPlaceUseCase;
 import kz.hackload.ticketing.service.provider.application.RemovePlaceFromOrderUseCase;
 import kz.hackload.ticketing.service.provider.application.SelectPlaceUseCase;
@@ -23,27 +24,68 @@ public final class PlaceResourceJavalinHttpAdapter
 {
     private static final Logger LOG = LoggerFactory.getLogger(PlaceResourceJavalinHttpAdapter.class);
 
+    private final CreatePlaceUseCase createPlaceUseCase;
     private final SelectPlaceUseCase selectPlaceUseCase;
     private final RemovePlaceFromOrderUseCase removePlaceFromOrderUseCase;
     private final GetPlaceUseCase getPlaceUseCase;
 
     public PlaceResourceJavalinHttpAdapter(final Javalin app,
+                                           final CreatePlaceUseCase createPlaceUseCase,
                                            final SelectPlaceUseCase selectPlaceUseCase,
                                            final RemovePlaceFromOrderUseCase removePlaceFromOrderUseCase,
                                            final GetPlaceUseCase getPlaceUseCase)
     {
+        this.createPlaceUseCase = createPlaceUseCase;
         this.selectPlaceUseCase = selectPlaceUseCase;
         this.removePlaceFromOrderUseCase = removePlaceFromOrderUseCase;
         this.getPlaceUseCase = getPlaceUseCase;
 
+        app.post("/api/partners/v1/places", this::createPlace);
         app.patch("/api/partners/v1/places/{id}/select", this::selectPlace);
         app.patch("/api/partners/v1/places/{id}/release", this::releasePlace);
         app.get("/api/partners/v1/places/{id}", this::getPlace);
     }
 
+    private void createPlace(final Context context)
+    {
+        final CreatePlaceDto createPlaceDto;
+
+        try
+        {
+            createPlaceDto = context.bodyAsClass(CreatePlaceDto.class);
+        }
+        catch (final Exception e)
+        {
+            LOG.error(e.getMessage(), e);
+            context.status(HttpStatus.UNPROCESSABLE_CONTENT);
+            return;
+        }
+
+        try
+        {
+            createPlaceUseCase.create(createPlaceDto.row(), createPlaceDto.seat());
+            context.status(HttpStatus.ACCEPTED);
+        }
+        catch (final RuntimeException e)
+        {
+            LOG.error(e.getMessage(), e);
+            context.status(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
     private void selectPlace(final Context context)
     {
-        final SelectPlaceDto selectPlaceDto = context.bodyAsClass(SelectPlaceDto.class);
+        final SelectPlaceDto selectPlaceDto;
+        try
+        {
+            selectPlaceDto = context.bodyAsClass(SelectPlaceDto.class);
+        }
+        catch (final Exception e)
+        {
+            LOG.error(e.getMessage(), e);
+            context.status(HttpStatus.UNPROCESSABLE_CONTENT);
+            return;
+        }
 
         try
         {

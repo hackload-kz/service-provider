@@ -25,6 +25,8 @@ import kz.hackload.ticketing.service.provider.application.CancelOrderApplication
 import kz.hackload.ticketing.service.provider.application.CancelOrderUseCase;
 import kz.hackload.ticketing.service.provider.application.ConfirmOrderApplicationService;
 import kz.hackload.ticketing.service.provider.application.ConfirmOrderUseCase;
+import kz.hackload.ticketing.service.provider.application.CreatePlaceApplicationService;
+import kz.hackload.ticketing.service.provider.application.CreatePlaceUseCase;
 import kz.hackload.ticketing.service.provider.application.EventsDispatcher;
 import kz.hackload.ticketing.service.provider.application.GetOrderUseCase;
 import kz.hackload.ticketing.service.provider.application.GetPlaceUseCase;
@@ -81,6 +83,7 @@ public final class ApplicationRunner
     {
         final long startNano = System.nanoTime();
 
+        // TODO: extract to env variables
         final HikariConfig hikariConfig = new HikariConfig();
         hikariConfig.setJdbcUrl("jdbc:postgresql://localhost:5432/hackload_ticketing_sp");
         hikariConfig.setUsername("hackload_ticketing_sp");
@@ -112,6 +115,7 @@ public final class ApplicationRunner
         final AddPlaceToOrderService addPlaceToOrderService = new AddPlaceToOrderService(clocks);
         final ReleasePlaceService releasePlaceService = new ReleasePlaceService(clocks);
 
+        final CreatePlaceUseCase createPlaceUseCase = new CreatePlaceApplicationService(clocks, jdbcTransactionManager, placesRepository, eventsDispatcher);
         final SelectPlaceUseCase selectPlaceUseCase = new SelectPlaceApplicationService(selectPlaceService, jdbcTransactionManager, placesRepository, ordersRepository, eventsDispatcher);
         final RemovePlaceFromOrderUseCase removePlaceFromOrderUseCase = new RemovePlaceFromOrderFromOrderApplicationService(jdbcTransactionManager, placesRepository, ordersRepository, eventsDispatcher, removePlaceFromOrderService);
         final ReleasePlaceUseCase releasePlaceUseCase = new ReleasePlaceApplicationService(jdbcTransactionManager, ordersRepository, placesRepository, releasePlaceService, eventsDispatcher);
@@ -149,7 +153,7 @@ public final class ApplicationRunner
 
         final Javalin httpServer = Javalin.create();
         new OrderResourcesJavalinHttpAdapter(httpServer, startOrderUseCase, submitOrderUseCase, confirmOrderUseCase, cancelOrderUseCase, getOrderUseCase);
-        new PlaceResourceJavalinHttpAdapter(httpServer, selectPlaceUseCase, removePlaceFromOrderUseCase, getPlaceUseCase);
+        new PlaceResourceJavalinHttpAdapter(httpServer, createPlaceUseCase, selectPlaceUseCase, removePlaceFromOrderUseCase, getPlaceUseCase);
 
         httpServer.start();
 

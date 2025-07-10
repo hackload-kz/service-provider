@@ -5,6 +5,9 @@ import java.util.UUID;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import kz.hackload.ticketing.service.provider.application.AddPlaceToOrderUseCase;
 import kz.hackload.ticketing.service.provider.application.JsonMapper;
 import kz.hackload.ticketing.service.provider.application.PlacesProjectionService;
@@ -21,6 +24,8 @@ import kz.hackload.ticketing.service.provider.domain.places.PlaceSelectedEvent;
 
 public final class PlaceEventsListener implements DomainEventsListener
 {
+    private static final Logger LOG = LoggerFactory.getLogger(PlaceEventsListener.class);
+
     private final JsonMapper jsonMapper;
     private final PlacesProjectionService placesProjectionService;
     private final AddPlaceToOrderUseCase addPlaceToOrderUseCase;
@@ -46,6 +51,8 @@ public final class PlaceEventsListener implements DomainEventsListener
     public void hande(final ConsumerRecord<String, String> record)
     {
         final String value = record.value();
+
+        LOG.info("Got {}", value);
 
         final Class<? extends PlaceDomainEvent> eventType = mapToPlaceDomainEventType(
                 new String(record.headers().lastHeader("event_type").value(), StandardCharsets.UTF_8)
