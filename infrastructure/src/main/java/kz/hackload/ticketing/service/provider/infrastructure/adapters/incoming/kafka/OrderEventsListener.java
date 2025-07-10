@@ -61,9 +61,7 @@ public final class OrderEventsListener implements DomainEventsListener
         switch (event)
         {
             case OrderStartedEvent e -> ordersProjectionService.orderStarted(orderId, e);
-            case PlaceAddedToOrderEvent e ->
-            {
-            }
+            case PlaceAddedToOrderEvent e -> ordersProjectionService.placeAddedToOrder(orderId, e);
             case PlaceRemovedFromOrderEvent e -> releasePlace(e);
             case OrderSubmittedEvent e ->
             {

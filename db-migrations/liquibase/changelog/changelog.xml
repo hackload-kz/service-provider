@@ -6,5 +6,6 @@
 
     <include file="changesets/create-events-table.xml" relativeToChangelogFile="true"/>
     <include file="changesets/create-outbox-table.xml" relativeToChangelogFile="true"/>
+    <include file="changesets/create-orders-table.xml" relativeToChangelogFile="true"/>
 
 </databaseChangeLog>

@@ -3,6 +3,7 @@ package kz.hackload.ticketing.service.provider.application;
 import kz.hackload.ticketing.service.provider.domain.orders.OrderId;
 import kz.hackload.ticketing.service.provider.domain.orders.OrderStartedEvent;
 import kz.hackload.ticketing.service.provider.domain.orders.OrdersProjectionsRepository;
+import kz.hackload.ticketing.service.provider.domain.orders.PlaceAddedToOrderEvent;
 
 public class OrdersProjectionService
 {
@@ -16,5 +17,10 @@ public class OrdersProjectionService
     public void orderStarted(final OrderId orderId, final OrderStartedEvent event)
     {
         ordersQueryRepository.insertStartedOrder(orderId, event.occurredOn(), event.revision());
+    }
+
+    public void placeAddedToOrder(final OrderId orderId, final PlaceAddedToOrderEvent e)
+    {
+        ordersQueryRepository.increasePlacesCount(orderId, e.occurredOn());
     }
 }

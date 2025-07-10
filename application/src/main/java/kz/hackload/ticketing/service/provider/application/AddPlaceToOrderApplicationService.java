@@ -18,16 +18,19 @@ public final class AddPlaceToOrderApplicationService implements AddPlaceToOrderU
     private final OrdersRepository ordersRepository;
     private final PlacesRepository placesRepository;
     private final AddPlaceToOrderService addPlaceToOrderService;
+    private final EventsDispatcher eventsDispatcher;
 
     public AddPlaceToOrderApplicationService(final TransactionManager transactionManager,
                                              final OrdersRepository ordersRepository,
                                              final PlacesRepository placesRepository,
-                                             final AddPlaceToOrderService addPlaceToOrderService)
+                                             final AddPlaceToOrderService addPlaceToOrderService,
+                                             final EventsDispatcher eventsDispatcher)
     {
         this.transactionManager = transactionManager;
         this.ordersRepository = ordersRepository;
         this.placesRepository = placesRepository;
         this.addPlaceToOrderService = addPlaceToOrderService;
+        this.eventsDispatcher = eventsDispatcher;
     }
 
     @Override
@@ -41,6 +44,10 @@ public final class AddPlaceToOrderApplicationService implements AddPlaceToOrderU
 
         addPlaceToOrderService.addPlace(order, place);
 
-        transactionManager.executeInTransaction(() -> ordersRepository.save(order));
+        transactionManager.executeInTransaction(() ->
+        {
+            eventsDispatcher.dispatch(orderId, order.uncommittedEvents());
+            ordersRepository.save(order);
+        });
     }
 }

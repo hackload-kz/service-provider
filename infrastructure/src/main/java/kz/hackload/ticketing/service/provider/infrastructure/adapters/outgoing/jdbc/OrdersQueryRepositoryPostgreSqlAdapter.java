@@ -31,7 +31,7 @@ public final class OrdersQueryRepositoryPostgreSqlAdapter implements OrdersQuery
     public Optional<GetOrderQueryResult> getOrder(final OrderId orderId)
     {
         try (final Connection connection = dataSource.getConnection();
-             final PreparedStatement statement = connection.prepareStatement("SELECT id, status, places_count, started_at FROM orders WHERE id = ?"))
+             final PreparedStatement statement = connection.prepareStatement("SELECT id, status, places_count, started_at, updated_at FROM orders WHERE id = ?"))
         {
             final PGobject idParamPgObject = new PGobject();
             idParamPgObject.setValue(orderId.value().toString());
@@ -47,8 +47,9 @@ public final class OrdersQueryRepositoryPostgreSqlAdapter implements OrdersQuery
                     final OrderStatus status = OrderStatus.valueOf(rs.getString("status"));
                     final long placesCount = rs.getLong("places_count");
                     final Instant startedAt = rs.getObject("started_at", OffsetDateTime.class).toInstant();
+                    final Instant updatedAt = rs.getObject("updated_at", OffsetDateTime.class).toInstant();
 
-                    return Optional.of(new GetOrderQueryResult(id, status, placesCount, startedAt));
+                    return Optional.of(new GetOrderQueryResult(id, status, placesCount, startedAt, updatedAt));
                 }
                 else
                 {

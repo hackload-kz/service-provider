@@ -54,7 +54,7 @@ import kz.hackload.ticketing.service.provider.domain.outbox.OutboxRepository;
 import kz.hackload.ticketing.service.provider.domain.places.PlacesRepository;
 import kz.hackload.ticketing.service.provider.domain.places.SelectPlaceService;
 import kz.hackload.ticketing.service.provider.infrastructure.adapters.incoming.http.OrderResourcesJavalinHttpAdapter;
-import kz.hackload.ticketing.service.provider.infrastructure.adapters.incoming.http.PlacesResourceJavalinHttpAdapter;
+import kz.hackload.ticketing.service.provider.infrastructure.adapters.incoming.http.PlaceResourceJavalinHttpAdapter;
 import kz.hackload.ticketing.service.provider.infrastructure.adapters.incoming.kafka.KafkaMessagesListener;
 import kz.hackload.ticketing.service.provider.infrastructure.adapters.incoming.kafka.OrderEventsListener;
 import kz.hackload.ticketing.service.provider.infrastructure.adapters.incoming.kafka.PlaceEventsListener;
@@ -105,7 +105,7 @@ public final class ApplicationRunner
         final SelectPlaceUseCase selectPlaceUseCase = new SelectPlaceApplicationService(selectPlaceService, jdbcTransactionManager, placesRepository, ordersRepository, eventsDispatcher);
         final RemovePlaceFromOrderUseCase removePlaceFromOrderUseCase = new RemovePlaceFromOrderFromOrderApplicationService(jdbcTransactionManager, placesRepository, ordersRepository, eventsDispatcher, removePlaceFromOrderService);
         final ReleasePlaceUseCase releasePlaceUseCase = new ReleasePlaceApplicationService(jdbcTransactionManager, ordersRepository, placesRepository, releasePlaceService);
-        final AddPlaceToOrderUseCase addPlaceToOrderUseCase = new AddPlaceToOrderApplicationService(jdbcTransactionManager, ordersRepository, placesRepository, addPlaceToOrderService);
+        final AddPlaceToOrderUseCase addPlaceToOrderUseCase = new AddPlaceToOrderApplicationService(jdbcTransactionManager, ordersRepository, placesRepository, addPlaceToOrderService, eventsDispatcher);
         final GetOrderUseCase getOrderUseCase = new OrdersQueryService(ordersQueryRepository);
 
         final Properties properties = new Properties();
@@ -137,7 +137,7 @@ public final class ApplicationRunner
 
         final Javalin httpServer = Javalin.create();
         new OrderResourcesJavalinHttpAdapter(httpServer, startOrderUseCase, submitOrderUseCase, confirmOrderUseCase, cancelOrderUseCase, getOrderUseCase);
-        new PlacesResourceJavalinHttpAdapter(httpServer, selectPlaceUseCase, removePlaceFromOrderUseCase);
+        new PlaceResourceJavalinHttpAdapter(httpServer, selectPlaceUseCase, removePlaceFromOrderUseCase);
 
         httpServer.start();
 

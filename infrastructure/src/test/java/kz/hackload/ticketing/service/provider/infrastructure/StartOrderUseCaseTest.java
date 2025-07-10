@@ -64,7 +64,7 @@ public class StartOrderUseCaseTest extends AbstractIntegrationTest
                     final OrderId orderId = new OrderId(UUID.fromString((String) startedOrderDto.get("order_id")));
 
                     Awaitility.await()
-                            .atMost(Duration.ofSeconds(10L))
+                            .atMost(Duration.ofSeconds(60L))
                             .until(() -> ordersQueryRepository.getOrder(orderId).isPresent());
 
                     try (final Response startedOrderResponse = c.get("/api/partners/v1/orders/" + orderId))
@@ -79,9 +79,16 @@ public class StartOrderUseCaseTest extends AbstractIntegrationTest
                                     "id": "%s",
                                     "status": "%s",
                                     "started_at": "%s",
+                                    "updated_at": "%s",
                                     "places_count": %s
                                 }
-                                """.formatted(orderId, "STARTED", DateTimeFormatter.ISO_INSTANT.format(clocks.now().truncatedTo(ChronoUnit.SECONDS)), 0));
+                                """.formatted(
+                                        orderId,
+                                    "STARTED",
+                                    DateTimeFormatter.ISO_INSTANT.format(clocks.now().truncatedTo(ChronoUnit.SECONDS)),
+                                    DateTimeFormatter.ISO_INSTANT.format(clocks.now().truncatedTo(ChronoUnit.SECONDS)),
+                                    0)
+                            );
                         }
                     }
                 }

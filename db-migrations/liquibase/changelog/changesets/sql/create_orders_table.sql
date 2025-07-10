@@ -4,5 +4,6 @@ create table public.orders
     status       varchar(255)             not null,
     places_count int                      not null,
     started_at   timestamp with time zone not null,
+    update_at    timestamp with time zone not null,
     revision     bigint                   not null
 );

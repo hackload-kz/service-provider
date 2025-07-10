@@ -4,6 +4,9 @@ import io.javalin.Javalin;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import kz.hackload.ticketing.service.provider.application.RemovePlaceFromOrderUseCase;
 import kz.hackload.ticketing.service.provider.application.SelectPlaceUseCase;
 import kz.hackload.ticketing.service.provider.domain.orders.OrderNotStartedException;
@@ -12,12 +15,14 @@ import kz.hackload.ticketing.service.provider.domain.orders.PlaceSelectedForAnot
 import kz.hackload.ticketing.service.provider.domain.places.PlaceAlreadySelectedException;
 import kz.hackload.ticketing.service.provider.domain.places.PlaceCanNotBeAddedToOrderException;
 
-public final class PlacesResourceJavalinHttpAdapter
+public final class PlaceResourceJavalinHttpAdapter
 {
+    private static final Logger LOG = LoggerFactory.getLogger(PlaceResourceJavalinHttpAdapter.class);
+
     private final SelectPlaceUseCase selectPlaceUseCase;
     private final RemovePlaceFromOrderUseCase removePlaceFromOrderUseCase;
 
-    public PlacesResourceJavalinHttpAdapter(final Javalin app, final SelectPlaceUseCase selectPlaceUseCase, final RemovePlaceFromOrderUseCase removePlaceFromOrderUseCase)
+    public PlaceResourceJavalinHttpAdapter(final Javalin app, final SelectPlaceUseCase selectPlaceUseCase, final RemovePlaceFromOrderUseCase removePlaceFromOrderUseCase)
     {
         this.selectPlaceUseCase = selectPlaceUseCase;
         this.removePlaceFromOrderUseCase = removePlaceFromOrderUseCase;
@@ -41,6 +46,7 @@ public final class PlacesResourceJavalinHttpAdapter
         }
         catch (final RuntimeException e)
         {
+            LOG.error(e.getMessage(), e);
             context.status(HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
@@ -58,13 +64,14 @@ public final class PlacesResourceJavalinHttpAdapter
         {
             context.status(HttpStatus.CONFLICT);
         }
-        catch (final RuntimeException e)
-        {
-            context.status(HttpStatus.INTERNAL_SERVER_ERROR);
-        }
         catch (final PlaceSelectedForAnotherOrderException e)
         {
             context.status(HttpStatus.FORBIDDEN);
+        }
+        catch (final RuntimeException e)
+        {
+            LOG.error(e.getMessage(), e);
+            context.status(HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 }

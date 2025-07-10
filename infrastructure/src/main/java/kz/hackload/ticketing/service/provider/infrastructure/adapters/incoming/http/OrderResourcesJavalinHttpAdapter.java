@@ -1,6 +1,5 @@
 package kz.hackload.ticketing.service.provider.infrastructure.adapters.incoming.http;
 
-import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.UUID;
@@ -8,6 +7,9 @@ import java.util.UUID;
 import io.javalin.Javalin;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import kz.hackload.ticketing.service.provider.application.CancelOrderUseCase;
 import kz.hackload.ticketing.service.provider.application.ConfirmOrderUseCase;
@@ -22,6 +24,8 @@ import kz.hackload.ticketing.service.provider.domain.orders.OrderNotSubmittedExc
 
 public class OrderResourcesJavalinHttpAdapter
 {
+    private static final Logger LOG = LoggerFactory.getLogger(OrderResourcesJavalinHttpAdapter.class);
+
     private final StartOrderUseCase startOrderUseCase;
     private final SubmitOrderUseCase submitOrderUseCase;
     private final ConfirmOrderUseCase confirmOrderUseCase;
@@ -51,13 +55,21 @@ public class OrderResourcesJavalinHttpAdapter
 
     private void startOrder(final Context context)
     {
-        final OrderId orderId = startOrderUseCase.startOrder();
+        try
+        {
+            final OrderId orderId = startOrderUseCase.startOrder();
 
-        context.status(HttpStatus.CREATED);
-        context.json("""
+            context.status(HttpStatus.CREATED);
+            context.json("""
                 {"order_id":"%s"}
                 """.formatted(orderId.value().toString())
-        );
+            );
+        }
+        catch (final RuntimeException e)
+        {
+            LOG.error(e.getMessage(), e);
+            context.status(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
 
     private void submitOrder(final Context context)
@@ -75,6 +87,7 @@ public class OrderResourcesJavalinHttpAdapter
         }
         catch (final RuntimeException e)
         {
+            LOG.error(e.getMessage(), e);
             context.status(HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
@@ -94,6 +107,7 @@ public class OrderResourcesJavalinHttpAdapter
         }
         catch (final RuntimeException e)
         {
+            LOG.error(e.getMessage(), e);
             context.status(HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
@@ -113,6 +127,7 @@ public class OrderResourcesJavalinHttpAdapter
         }
         catch (final RuntimeException e)
         {
+            LOG.error(e.getMessage(), e);
             context.status(HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
@@ -130,15 +145,23 @@ public class OrderResourcesJavalinHttpAdapter
                                     "id": "%s",
                                     "status": "%s",
                                     "started_at": "%s",
+                                    "updated_at": "%s",
                                     "places_count": %s
                                 }
-                                """.formatted(order.id(), order.status(), DateTimeFormatter.ISO_INSTANT.format(order.startedAt().truncatedTo(ChronoUnit.SECONDS)), order.placesCount()));
+                                """.formatted(
+                                order.id(),
+                                order.status(),
+                                DateTimeFormatter.ISO_INSTANT.format(order.startedAt().truncatedTo(ChronoUnit.SECONDS)),
+                                DateTimeFormatter.ISO_INSTANT.format(order.updatedAt().truncatedTo(ChronoUnit.SECONDS)),
+                                order.placesCount())
+                        );
                         context.status(HttpStatus.OK);
                     },
                     () -> context.status(HttpStatus.NOT_FOUND));
         }
         catch (final RuntimeException e)
         {
+            LOG.error(e.getMessage(), e);
             context.status(HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }

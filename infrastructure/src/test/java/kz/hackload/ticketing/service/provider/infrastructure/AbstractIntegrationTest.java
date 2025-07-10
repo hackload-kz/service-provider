@@ -142,6 +142,7 @@ public abstract class AbstractIntegrationTest
                     status       varchar(255)             not null,
                     places_count int                      not null,
                     started_at   timestamp with time zone not null,
+                    updated_at    timestamp with time zone not null,
                     revision     bigint                   not null
                 );
                 """
@@ -173,7 +174,7 @@ public abstract class AbstractIntegrationTest
         selectPlaceUseCase = new SelectPlaceApplicationService(selectPlaceService, transactionManager, placesRepository, ordersRepository, eventsDispatcher);
         releasePlaceUseCase = new ReleasePlaceApplicationService(transactionManager, ordersRepository, placesRepository, releasePlaceService);
         submitOrderUseCase = new SubmitOrderApplicationService(clocks, transactionManager, ordersRepository);
-        addPlaceToOrderUseCase = new AddPlaceToOrderApplicationService(transactionManager, ordersRepository, placesRepository, addPlaceToOrderService);
+        addPlaceToOrderUseCase = new AddPlaceToOrderApplicationService(transactionManager, ordersRepository, placesRepository, addPlaceToOrderService, eventsDispatcher);
         removePlaceFromOrderUseCase = new RemovePlaceFromOrderFromOrderApplicationService(transactionManager, placesRepository, ordersRepository, eventsDispatcher, removePlaceFromOrderService);
         confirmOrderUseCase = new ConfirmOrderApplicationService(clocks, transactionManager, ordersRepository);
         cancelOrderUseCase = new CancelOrderApplicationService(clocks, transactionManager, ordersRepository);

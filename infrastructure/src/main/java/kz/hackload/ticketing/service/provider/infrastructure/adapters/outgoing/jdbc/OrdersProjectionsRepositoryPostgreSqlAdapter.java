@@ -26,7 +26,7 @@ public final class OrdersProjectionsRepositoryPostgreSqlAdapter implements Order
     public void insertStartedOrder(final OrderId orderId, final Instant startedAt, final long revision)
     {
         try (final Connection connection = dataSource.getConnection();
-             final PreparedStatement statement = connection.prepareStatement("INSERT INTO orders(id, status, places_count, started_at, revision) VALUES (?, 'STARTED', 0, ?, ?)"))
+             final PreparedStatement statement = connection.prepareStatement("INSERT INTO orders(id, status, places_count, started_at, updated_at, revision) VALUES (?, 'STARTED', 0, ?, ?, ?)"))
         {
             final PGobject idParamPgObject = new PGobject();
             idParamPgObject.setValue(orderId.value().toString());
@@ -34,7 +34,31 @@ public final class OrdersProjectionsRepositoryPostgreSqlAdapter implements Order
 
             statement.setObject(1, idParamPgObject);
             statement.setObject(2, startedAt.atOffset(ZoneOffset.UTC));
-            statement.setLong(3, revision);
+            statement.setObject(3, startedAt.atOffset(ZoneOffset.UTC));
+            statement.setLong(4, revision);
+
+            statement.executeUpdate();
+        }
+        catch (final SQLException e)
+        {
+            // todo: replace with domain exception
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Override
+    public void increasePlacesCount(final OrderId orderId, final Instant placeAddedAt)
+    {
+        try (final Connection connection = dataSource.getConnection();
+             final PreparedStatement statement = connection.prepareStatement("UPDATE orders SET places_count = places_count + 1, updated_at = ? WHERE id = ?"))
+        {
+            statement.setObject(1, placeAddedAt.atOffset(ZoneOffset.UTC));
+
+            final PGobject idParamPgObject = new PGobject();
+            idParamPgObject.setValue(orderId.value().toString());
+            idParamPgObject.setType("uuid");
+
+            statement.setObject(2, idParamPgObject);
 
             statement.executeUpdate();
         }

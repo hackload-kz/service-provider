@@ -22,14 +22,14 @@ import kz.hackload.ticketing.service.provider.domain.places.PlaceCanNotBeAddedTo
 import kz.hackload.ticketing.service.provider.domain.places.PlaceId;
 import kz.hackload.ticketing.service.provider.domain.places.Row;
 import kz.hackload.ticketing.service.provider.domain.places.Seat;
-import kz.hackload.ticketing.service.provider.infrastructure.adapters.incoming.http.PlacesResourceJavalinHttpAdapter;
+import kz.hackload.ticketing.service.provider.infrastructure.adapters.incoming.http.PlaceResourceJavalinHttpAdapter;
 
 public class RemovePlaceFromOrderUseCaseTest extends AbstractIntegrationTest
 {
     @BeforeEach
     void setUp()
     {
-        new PlacesResourceJavalinHttpAdapter(server, selectPlaceUseCase, removePlaceFromOrderUseCase);
+        new PlaceResourceJavalinHttpAdapter(server, selectPlaceUseCase, removePlaceFromOrderUseCase);
     }
 
     @Test
