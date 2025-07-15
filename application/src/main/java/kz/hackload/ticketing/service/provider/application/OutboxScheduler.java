@@ -17,7 +17,7 @@ public final class OutboxScheduler
 {
     private static final Logger LOG = LoggerFactory.getLogger(OutboxScheduler.class);
 
-    private final ScheduledExecutorService scheduler = new ScheduledThreadPoolExecutor(1, new ThreadFactory()
+    private final ScheduledExecutorService scheduler = new ScheduledThreadPoolExecutor(2, new ThreadFactory()
     {
         private static final AtomicInteger THREAD_COUNTER = new AtomicInteger(0);
 
@@ -44,7 +44,8 @@ public final class OutboxScheduler
     public void start()
     {
         LOG.info("Starting outbox scheduler");
-        scheduler.scheduleAtFixedRate(this::sendScheduledMessages, 10L, 10L, TimeUnit.MILLISECONDS);
+        scheduler.scheduleAtFixedRate(this::sendScheduledOrders, 10L, 10L, TimeUnit.MILLISECONDS);
+        scheduler.scheduleAtFixedRate(this::sendScheduledPlaces, 10L, 10L, TimeUnit.MILLISECONDS);
     }
 
     public void stop()
@@ -72,13 +73,37 @@ public final class OutboxScheduler
         LOG.info("Outbox scheduler is stopped");
     }
 
-    public void sendScheduledMessages()
+    public void sendScheduledOrders()
     {
         try
         {
             transactionManager.executeInTransaction(() ->
             {
-                final Optional<OutboxMessage> optionalOutboxMessage = outboxRepository.nextForDelivery();
+                final Optional<OutboxMessage> optionalOutboxMessage = outboxRepository.nextForDelivery("order");
+
+                if (optionalOutboxMessage.isEmpty())
+                {
+                    return;
+                }
+
+                final OutboxMessage outboxMessage = optionalOutboxMessage.get();
+                outboxSender.send(outboxMessage.topic(), outboxMessage.aggregateId(), outboxMessage.eventType(), outboxMessage.payload());
+                outboxRepository.delete(outboxMessage.id());
+            });
+        }
+        catch (final RuntimeException e)
+        {
+            LOG.error(e.getMessage(), e);
+        }
+    }
+
+    public void sendScheduledPlaces()
+    {
+        try
+        {
+            transactionManager.executeInTransaction(() ->
+            {
+                final Optional<OutboxMessage> optionalOutboxMessage = outboxRepository.nextForDelivery("place");
 
                 if (optionalOutboxMessage.isEmpty())
                 {

@@ -39,7 +39,7 @@ public final class EventsDispatcher
     {
         final List<OutboxMessage> outboxMessages = domainEvents
                 .stream()
-                .map(event -> new OutboxMessage(outboxRepository.nextId(), topic, aggregateId.toString(), event.occurredOn(), aggregateType, event.type(), jsonMapper.toJson(event)))
+                .map(event -> new OutboxMessage(outboxRepository.nextId(), topic, aggregateId.toString(), event.revision(), aggregateType, event.type(), jsonMapper.toJson(event)))
                 .toList();
 
         outboxMessages.forEach(outboxRepository::save);

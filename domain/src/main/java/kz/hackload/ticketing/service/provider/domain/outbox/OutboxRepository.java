@@ -8,7 +8,7 @@ public interface OutboxRepository
 
     void save(final OutboxMessage outboxMessage);
 
-    Optional<OutboxMessage> nextForDelivery();
+    Optional<OutboxMessage> nextForDelivery(String aggregateType);
 
     void delete(final OutboxMessageId id);
 }
