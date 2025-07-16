@@ -1,4 +1,4 @@
-package kz.hackload.ticketing.service.provider.infrastructure.adapters;
+package kz.hackload.ticketing.service.provider.infrastructure;
 
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
@@ -60,6 +60,7 @@ import kz.hackload.ticketing.service.provider.domain.places.PlacesProjectionsRep
 import kz.hackload.ticketing.service.provider.domain.places.PlacesQueryRepository;
 import kz.hackload.ticketing.service.provider.domain.places.PlacesRepository;
 import kz.hackload.ticketing.service.provider.domain.places.SelectPlaceService;
+import kz.hackload.ticketing.service.provider.infrastructure.adapters.JacksonJsonMapper;
 import kz.hackload.ticketing.service.provider.infrastructure.adapters.incoming.http.OrderResourcesJavalinHttpAdapter;
 import kz.hackload.ticketing.service.provider.infrastructure.adapters.incoming.http.PlaceResourceJavalinHttpAdapter;
 import kz.hackload.ticketing.service.provider.infrastructure.adapters.incoming.kafka.KafkaMessagesListener;
@@ -85,10 +86,10 @@ public final class ApplicationRunner
 
         // TODO: extract to env variables
         final HikariConfig hikariConfig = new HikariConfig();
-        hikariConfig.setJdbcUrl("jdbc:postgresql://localhost:5432/hackload_ticketing_sp");
-        hikariConfig.setUsername("hackload_ticketing_sp");
-        hikariConfig.setPassword("hackload_ticketing_sp");
-        hikariConfig.setMaximumPoolSize(16);
+        hikariConfig.setJdbcUrl(System.getenv("DB_JDBC_URL"));
+        hikariConfig.setUsername(System.getenv("DB_JDBC_USER"));
+        hikariConfig.setPassword(System.getenv("DB_JDBC_PASSWORD"));
+        hikariConfig.setMaximumPoolSize(Integer.parseInt(System.getenv("DB_CONNECTION_POOL_SIZE")));
 
         final DataSource dataSource = new HikariDataSource(hikariConfig);
         final JdbcTransactionManager jdbcTransactionManager = new JdbcTransactionManager(dataSource);
@@ -124,12 +125,12 @@ public final class ApplicationRunner
         final GetPlaceUseCase getPlaceUseCase = new PlacesQueryService(placesQueryRepository);
 
         final Properties properties = new Properties();
-        properties.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, "127.0.0.1:9092,127.0.0.1:9095,127.0.0.1:9098");
+        properties.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, System.getenv("KAFKA_BOOTSTRAP_SERVERS"));
         properties.put(ProducerConfig.ACKS_CONFIG, "all");
         properties.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringSerializer");
         properties.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringSerializer");
 
-        properties.put(ConsumerConfig.GROUP_ID_CONFIG, UUID.randomUUID().toString());
+        properties.put(ConsumerConfig.GROUP_ID_CONFIG, System.getenv("KAFKA_CONSUMER_GROUP_ID"));
         properties.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
         properties.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringDeserializer");
         properties.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringDeserializer");

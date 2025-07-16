@@ -1,4 +1,24 @@
 services:
+  service-provider:
+    build: ../.
+    environment:
+      DB_JDBC_URL: jdbc:postgresql://postgresql:5432/hackload_ticketing_sp
+      DB_JDBC_USER: hackload_ticketing_sp
+      DB_JDBC_PASSWORD: hackload_ticketing_sp
+      DB_CONNECTION_POOL_SIZE: 16
+      KAFKA_BOOTSTRAP_SERVERS: "kafka-0:9090,kafka-1:9093,kafka-2:9096"
+      KAFKA_CONSUMER_GROUP_ID: "docker-compose-group"
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgresql:
+        condition: service_healthy
+      kafka-0:
+        condition: service_healthy
+      kafka-1:
+        condition: service_healthy
+      kafka-2:
+        condition: service_healthy
   postgresql:
     image: postgres
     environment:
@@ -41,6 +61,12 @@ services:
       - KAFKA_KRAFT_CLUSTER_ID=abcdefghijklmnopqrstuv
       - KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=3
       - KAFKA_AUTO_CREATE_TOPICS_ENABLE=true
+    healthcheck:
+      test: [ "CMD-SHELL", "/opt/bitnami/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9090 || exit 1" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
   kafka-1:
     image: "bitnami/kafka:latest"
     ports:
@@ -58,6 +84,12 @@ services:
       - KAFKA_KRAFT_CLUSTER_ID=abcdefghijklmnopqrstuv
       - KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=3
       - KAFKA_AUTO_CREATE_TOPICS_ENABLE=true
+    healthcheck:
+      test: [ "CMD-SHELL", "/opt/bitnami/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9093 || exit 1" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
   kafka-2:
     image: "bitnami/kafka:latest"
     ports:
@@ -75,3 +107,9 @@ services:
       - KAFKA_KRAFT_CLUSTER_ID=abcdefghijklmnopqrstuv
       - KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=3
       - KAFKA_AUTO_CREATE_TOPICS_ENABLE=true
+    healthcheck:
+      test: [ "CMD-SHELL", "/opt/bitnami/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9096 || exit 1" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
