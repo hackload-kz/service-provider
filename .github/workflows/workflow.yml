@@ -36,4 +36,4 @@ jobs:
           context: .
           file: Dockerfile
           push: 'true'
-          tags: service-provider:${{ github.sha }}
+          tags: ${{ env.REGISTRY }}/service-provider:${{ github.sha }}
