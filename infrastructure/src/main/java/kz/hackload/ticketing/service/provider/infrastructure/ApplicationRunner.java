@@ -152,7 +152,7 @@ public final class ApplicationRunner
         final OutboxScheduler outboxScheduler = new OutboxScheduler(jdbcTransactionManager, outboxRepository, outboxSender);
         outboxScheduler.start();
 
-        final Javalin httpServer = Javalin.create();
+        final Javalin httpServer = Javalin.create(config -> config.useVirtualThreads = true);
         new OrderResourcesJavalinHttpAdapter(httpServer, startOrderUseCase, submitOrderUseCase, confirmOrderUseCase, cancelOrderUseCase, getOrderUseCase);
         new PlaceResourceJavalinHttpAdapter(httpServer, createPlaceUseCase, selectPlaceUseCase, removePlaceFromOrderUseCase, getPlaceUseCase);
 
