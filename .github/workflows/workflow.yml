@@ -17,6 +17,7 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '24'
+          cache: 'maven'
       - run: |
           sh build.sh
       - name: Log in to Container Registry
