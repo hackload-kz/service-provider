@@ -41,7 +41,7 @@ public class CreatePlaceUseCaseTest extends AbstractIntegrationTest
         JavalinTest.test(server, (_, c) ->
         {
             // when
-            try (Response response = c.post("/api/admin/places", """
+            try (Response response = c.post("/api/admin/v1/places", """
                     {
                         "row": %s,
                         "seat": %s

@@ -6,6 +6,8 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -59,5 +61,37 @@ public final class PlacesQueryRepositoryPostgreSqlAdapter implements PlacesQuery
         {
             throw new RuntimeException(e);
         }
+    }
+
+    @Override
+    public List<GetPlaceQueryResult> getPlaces(final int page, final int pageSize)
+    {
+        final List<GetPlaceQueryResult> places = new ArrayList<>(page * pageSize);
+        try (final Connection connection = dataSource.getConnection();
+             final PreparedStatement statement = connection.prepareStatement("select id, row, seat, is_free from places limit ? offset ?"))
+        {
+            statement.setInt(1, pageSize);
+            statement.setInt(2, (page - 1) * pageSize);
+
+            try (final ResultSet rs = statement.executeQuery())
+            {
+                while (rs.next())
+                {
+                    final PlaceId id = new PlaceId((UUID) rs.getObject("id"));
+                    final Row row = new Row(rs.getInt("row"));
+                    final Seat seat = new Seat(rs.getInt("seat"));
+                    final boolean isFree = rs.getBoolean("is_free");
+
+                    final GetPlaceQueryResult place = new GetPlaceQueryResult(id, row, seat, isFree);
+                    places.add(place);
+                }
+            }
+        }
+        catch (SQLException e)
+        {
+            throw new RuntimeException(e);
+        }
+
+        return places;
     }
 }

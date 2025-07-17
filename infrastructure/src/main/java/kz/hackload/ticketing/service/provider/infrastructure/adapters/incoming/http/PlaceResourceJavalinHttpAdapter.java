@@ -1,5 +1,6 @@
 package kz.hackload.ticketing.service.provider.infrastructure.adapters.incoming.http;
 
+import java.util.List;
 import java.util.UUID;
 
 import io.javalin.Javalin;
@@ -16,6 +17,7 @@ import kz.hackload.ticketing.service.provider.application.SelectPlaceUseCase;
 import kz.hackload.ticketing.service.provider.domain.orders.OrderNotStartedException;
 import kz.hackload.ticketing.service.provider.domain.orders.PlaceNotAddedException;
 import kz.hackload.ticketing.service.provider.domain.orders.PlaceSelectedForAnotherOrderException;
+import kz.hackload.ticketing.service.provider.domain.places.GetPlaceQueryResult;
 import kz.hackload.ticketing.service.provider.domain.places.PlaceAlreadySelectedException;
 import kz.hackload.ticketing.service.provider.domain.places.PlaceCanNotBeAddedToOrderException;
 import kz.hackload.ticketing.service.provider.domain.places.PlaceId;
@@ -40,10 +42,11 @@ public final class PlaceResourceJavalinHttpAdapter
         this.removePlaceFromOrderUseCase = removePlaceFromOrderUseCase;
         this.getPlaceUseCase = getPlaceUseCase;
 
-        app.post("/api/admin/places", this::createPlace);
+        app.post("/api/admin/v1/places", this::createPlace);
         app.patch("/api/partners/v1/places/{id}/select", this::selectPlace);
         app.patch("/api/partners/v1/places/{id}/release", this::releasePlace);
         app.get("/api/partners/v1/places/{id}", this::getPlace);
+        app.get("/api/partners/v1/places", this::getPlaces);
     }
 
     private void createPlace(final Context context)
@@ -156,5 +159,49 @@ public final class PlaceResourceJavalinHttpAdapter
             LOG.error(e.getMessage(), e);
             context.status(HttpStatus.INTERNAL_SERVER_ERROR);
         }
+    }
+
+    private void getPlaces(final Context context)
+    {
+        try
+        {
+            final int page = getPage(context);
+            final int pageSize = getPageSize(context);
+
+            final List<GetPlaceQueryResult> places = getPlaceUseCase.getPlaces(page, pageSize);
+            final PlacesDto placesDto = new PlacesDto(places);
+            context.json(placesDto);
+        }
+        catch (final RuntimeException e)
+        {
+            LOG.error(e.getMessage(), e);
+            context.status(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    private static int getPage(final Context context)
+    {
+        final String pageQuery = context.queryParam("page");
+        if (pageQuery == null)
+        {
+            return 1;
+        }
+
+        final int page = Integer.parseInt(pageQuery);
+
+        return Math.max(page, 1);
+    }
+
+    private static int getPageSize(final Context context)
+    {
+        final String pageSizeQuery = context.queryParam("pageSize");
+        if (pageSizeQuery == null)
+        {
+            return 20;
+        }
+
+        final int pageSize = Integer.parseInt(pageSizeQuery);
+
+        return Math.min(pageSize, 100);
     }
 }
