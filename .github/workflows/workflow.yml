@@ -9,6 +9,9 @@ env:
 jobs:
   build:
     runs-on: [ self-hosted ]
+    permissions:
+      contents: read
+      packages: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -29,6 +32,7 @@ jobs:
       - name: Build and push base image
         uses: docker/build-push-action@v6
         with:
+          context: .
           file: Dockerfile
           push: 'true'
           tags: service-provider:${{ github.sha }}
