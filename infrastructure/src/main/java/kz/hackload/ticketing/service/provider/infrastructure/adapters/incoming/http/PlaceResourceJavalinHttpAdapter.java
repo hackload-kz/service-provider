@@ -40,7 +40,7 @@ public final class PlaceResourceJavalinHttpAdapter
         this.removePlaceFromOrderUseCase = removePlaceFromOrderUseCase;
         this.getPlaceUseCase = getPlaceUseCase;
 
-        app.post("/api/partners/v1/places", this::createPlace);
+        app.post("/api/admin/places", this::createPlace);
         app.patch("/api/partners/v1/places/{id}/select", this::selectPlace);
         app.patch("/api/partners/v1/places/{id}/release", this::releasePlace);
         app.get("/api/partners/v1/places/{id}", this::getPlace);
@@ -63,7 +63,12 @@ public final class PlaceResourceJavalinHttpAdapter
 
         try
         {
-            createPlaceUseCase.create(createPlaceDto.row(), createPlaceDto.seat());
+            final PlaceId placeId = createPlaceUseCase.create(createPlaceDto.row(), createPlaceDto.seat());
+            context.json("""
+                    {
+                        "place_id": "%s"
+                    }
+                    """.formatted(placeId));
             context.status(HttpStatus.ACCEPTED);
         }
         catch (final RuntimeException e)

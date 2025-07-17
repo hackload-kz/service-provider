@@ -20,7 +20,7 @@ public final class CreatePlaceDtoDeserializer extends JsonDeserializer<CreatePla
         final TreeNode treeNode = p.getCodec().readTree(p);
 
         final Row row = new Row(((JsonNode) treeNode.get("row")).asInt());
-        final Seat seat = new Seat(((JsonNode) treeNode.get("row")).asInt());
+        final Seat seat = new Seat(((JsonNode) treeNode.get("seat")).asInt());
 
         return new CreatePlaceDto(row, seat);
     }
