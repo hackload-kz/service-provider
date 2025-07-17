@@ -5,6 +5,7 @@ on:
       - main
 env:
   REGISTRY: ghcr.io
+  BASE_IMAGE_NAME: ${{ vars.BASE_IMAGE_NAME || github.repository }}-base
 
 jobs:
   build:
@@ -36,4 +37,6 @@ jobs:
           context: .
           file: Dockerfile
           push: 'true'
-          tags: ${{ env.REGISTRY }}/service-provider:${{ github.sha }}
+          tags:
+            ${{ steps.base-meta.outputs.tags }}
+            ${{ env.REGISTRY }}/${{ env.BASE_IMAGE_NAME }}:pkg-${{ steps.check-rebuild.outputs.package-hash }}
