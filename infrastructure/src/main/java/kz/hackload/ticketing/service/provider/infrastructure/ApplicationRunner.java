@@ -7,7 +7,6 @@ import javax.sql.DataSource;
 
 import java.time.Duration;
 import java.util.Properties;
-import java.util.UUID;
 
 import io.javalin.Javalin;
 
@@ -31,6 +30,7 @@ import kz.hackload.ticketing.service.provider.application.EventsDispatcher;
 import kz.hackload.ticketing.service.provider.application.GetOrderUseCase;
 import kz.hackload.ticketing.service.provider.application.GetPlaceUseCase;
 import kz.hackload.ticketing.service.provider.application.JsonMapper;
+import kz.hackload.ticketing.service.provider.application.OrderCancelledEventsHandler;
 import kz.hackload.ticketing.service.provider.application.OrdersProjectionService;
 import kz.hackload.ticketing.service.provider.application.OrdersQueryService;
 import kz.hackload.ticketing.service.provider.application.OutboxScheduler;
@@ -142,8 +142,9 @@ public final class ApplicationRunner
         placeEventsKafkaMessagesListener.start();
 
         final OrdersProjectionService ordersProjectionService = new OrdersProjectionService(ordersProjectionsRepository);
+        final OrderCancelledEventsHandler orderCancelledEventsHandler = new OrderCancelledEventsHandler(ordersProjectionService, releasePlaceUseCase);
         final KafkaConsumer<String, String> orderEventsKafkaConsumer = new KafkaConsumer<>(properties);
-        final OrderEventsListener orderEventsListener = new OrderEventsListener(jsonMapper, ordersProjectionService, releasePlaceUseCase);
+        final OrderEventsListener orderEventsListener = new OrderEventsListener(jsonMapper, orderCancelledEventsHandler, ordersProjectionService, releasePlaceUseCase);
         final KafkaMessagesListener orderEventsKafkaMessagesListener = new KafkaMessagesListener(orderEventsKafkaConsumer, "order-events", orderEventsListener);
         orderEventsKafkaMessagesListener.start();
 

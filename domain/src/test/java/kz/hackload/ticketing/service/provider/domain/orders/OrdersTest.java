@@ -297,7 +297,7 @@ public class OrdersTest
     }
 
     @Test
-    void shouldCancelEmptyStartedOrder() throws OrderAlreadyCancelledException
+    void shouldCancelEmptyStartedOrder() throws OrderAlreadyCancelledException, ConfirmedOrderCanNotBeCancelledException
     {
         final Instant now = Instant.now();
 
@@ -315,7 +315,7 @@ public class OrdersTest
     }
 
     @Test
-    void shouldRemovePlacesFromOrderAndCancelStartedOrder() throws OrderNotStartedException, PlaceAlreadyAddedException, OrderAlreadyCancelledException
+    void shouldRemovePlacesFromOrderAndCancelStartedOrder() throws OrderNotStartedException, PlaceAlreadyAddedException, OrderAlreadyCancelledException, ConfirmedOrderCanNotBeCancelledException
     {
         final Instant now = Instant.now();
 
@@ -336,7 +336,7 @@ public class OrdersTest
     @Test
     void shouldRemovePlacesFromOrderAndCancelSubmittedOrder() throws OrderNotStartedException,
             PlaceAlreadyAddedException,
-            NoPlacesAddedException, OrderAlreadyCancelledException
+            NoPlacesAddedException, OrderAlreadyCancelledException, ConfirmedOrderCanNotBeCancelledException
     {
         final Instant now = Instant.now();
 
@@ -356,7 +356,7 @@ public class OrdersTest
     }
 
     @Test
-    void shouldNotCancelCancelledOrder() throws OrderAlreadyCancelledException
+    void shouldNotCancelCancelledOrder() throws OrderAlreadyCancelledException, ConfirmedOrderCanNotBeCancelledException
     {
         final Instant now = Instant.now();
 
@@ -372,5 +372,28 @@ public class OrdersTest
 
         assertThat(order.status()).isEqualTo(OrderStatus.CANCELLED);
         assertThat(order.uncommittedEvents()).isEmpty();
+    }
+
+    @Test
+    void confirmedOrderIsNotCancelled() throws OrderNotStartedException, PlaceAlreadyAddedException, NoPlacesAddedException, OrderNotSubmittedException
+    {
+        // given
+        final Instant now = Instant.now();
+
+        final OrderId orderId = new OrderId(UUID.randomUUID());
+        final Order order = Order.start(now, orderId);
+        order.commitEvents();
+
+        final PlaceId placeId = new PlaceId(UUID.randomUUID());
+
+        order.addPlace(now, placeId);
+        order.submit(now);
+        order.commitEvents();
+        order.confirm(now);
+
+        // when, then
+        assertThatThrownBy(() -> order.cancel(now))
+                .isInstanceOf(ConfirmedOrderCanNotBeCancelledException.class)
+                .hasMessage("Confirmed order %s can not be cancelled".formatted(orderId));
     }
 }

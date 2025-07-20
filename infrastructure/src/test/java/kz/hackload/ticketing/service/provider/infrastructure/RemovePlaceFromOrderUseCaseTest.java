@@ -66,12 +66,7 @@ public class RemovePlaceFromOrderUseCaseTest extends AbstractIntegrationTest
         JavalinTest.test(server, (_, c) ->
         {
             // when
-            try (final Response response = c.patch("/api/partners/v1/places/" + placeId.value() + "/release", """
-                    {
-                        "order_id": "%s",
-                        "place_id": "%s"
-                    }
-                    """.formatted(orderId.value(), placeId.value())))
+            try (final Response response = c.patch("/api/partners/v1/places/" + placeId.value() + "/release"))
             {
                 // then
                 assertThat(response.isSuccessful()).isTrue();

@@ -1,7 +1,5 @@
 package kz.hackload.ticketing.service.provider.infrastructure.adapters.incoming.http;
 
-import java.time.format.DateTimeFormatter;
-import java.time.temporal.ChronoUnit;
 import java.util.UUID;
 
 import io.javalin.Javalin;
@@ -16,11 +14,14 @@ import kz.hackload.ticketing.service.provider.application.ConfirmOrderUseCase;
 import kz.hackload.ticketing.service.provider.application.GetOrderUseCase;
 import kz.hackload.ticketing.service.provider.application.StartOrderUseCase;
 import kz.hackload.ticketing.service.provider.application.SubmitOrderUseCase;
+import kz.hackload.ticketing.service.provider.domain.orders.ConfirmedOrderCanNotBeCancelledException;
 import kz.hackload.ticketing.service.provider.domain.orders.NoPlacesAddedException;
 import kz.hackload.ticketing.service.provider.domain.orders.OrderAlreadyCancelledException;
 import kz.hackload.ticketing.service.provider.domain.orders.OrderId;
 import kz.hackload.ticketing.service.provider.domain.orders.OrderNotStartedException;
 import kz.hackload.ticketing.service.provider.domain.orders.OrderNotSubmittedException;
+import kz.hackload.ticketing.service.provider.infrastructure.adapters.incoming.http.dto.GetOrderResponse;
+import kz.hackload.ticketing.service.provider.infrastructure.adapters.incoming.http.dto.StartOrderResponse;
 
 public class OrderResourcesJavalinHttpAdapter
 {
@@ -58,12 +59,9 @@ public class OrderResourcesJavalinHttpAdapter
         try
         {
             final OrderId orderId = startOrderUseCase.startOrder();
-
+            final StartOrderResponse response = new StartOrderResponse(orderId);
             context.status(HttpStatus.CREATED);
-            context.json("""
-                {"order_id":"%s"}
-                """.formatted(orderId.value().toString())
-            );
+            context.json(response);
         }
         catch (final RuntimeException e)
         {
@@ -121,7 +119,7 @@ public class OrderResourcesJavalinHttpAdapter
             cancelOrderUseCase.cancel(orderId);
             context.status(HttpStatus.OK);
         }
-        catch (final OrderAlreadyCancelledException e)
+        catch (final OrderAlreadyCancelledException | ConfirmedOrderCanNotBeCancelledException e)
         {
             context.status(HttpStatus.CONFLICT);
         }
@@ -140,23 +138,16 @@ public class OrderResourcesJavalinHttpAdapter
         {
             getOrderUseCase.getOrder(orderId).ifPresentOrElse(order ->
                     {
-                        context.json("""
-                                {
-                                    "id": "%s",
-                                    "status": "%s",
-                                    "started_at": "%s",
-                                    "updated_at": "%s",
-                                    "places_count": %s
-                                }
-                                """.formatted(
+                        final GetOrderResponse response = new GetOrderResponse(
                                 order.id(),
                                 order.status(),
-                                DateTimeFormatter.ISO_INSTANT.format(order.startedAt().truncatedTo(ChronoUnit.SECONDS)),
-                                DateTimeFormatter.ISO_INSTANT.format(order.updatedAt().truncatedTo(ChronoUnit.SECONDS)),
-                                order.placesCount())
+                                order.startedAt(),
+                                order.updatedAt(),
+                                order.placesCount()
                         );
 
                         context.status(HttpStatus.OK);
+                        context.json(response);
                     },
                     () -> context.status(HttpStatus.NOT_FOUND));
         }

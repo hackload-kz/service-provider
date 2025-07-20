@@ -15,4 +15,5 @@ module kz.hackload.ticketing.service.provider.infrastructure
 
     exports kz.hackload.ticketing.service.provider.infrastructure.adapters.incoming.http to com.fasterxml.jackson.databind;
     exports kz.hackload.ticketing.service.provider.infrastructure.adapters.incoming.kafka to com.fasterxml.jackson.databind;
+    exports kz.hackload.ticketing.service.provider.infrastructure.adapters.incoming.http.dto to com.fasterxml.jackson.databind;
 }

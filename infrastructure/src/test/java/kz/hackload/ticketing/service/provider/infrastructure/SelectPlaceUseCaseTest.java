@@ -21,9 +21,6 @@ import org.junit.jupiter.api.Test;
 
 import org.testcontainers.shaded.org.awaitility.Awaitility;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import kz.hackload.ticketing.service.provider.domain.orders.OrderId;
 import kz.hackload.ticketing.service.provider.domain.places.Place;
 import kz.hackload.ticketing.service.provider.domain.places.PlaceId;
@@ -34,8 +31,6 @@ import kz.hackload.ticketing.service.provider.infrastructure.adapters.incoming.h
 
 public class SelectPlaceUseCaseTest extends AbstractIntegrationTest
 {
-    private static final Logger LOG = LoggerFactory.getLogger(SelectPlaceUseCaseTest.class);
-
     @BeforeEach
     void setUp()
     {
@@ -60,10 +55,9 @@ public class SelectPlaceUseCaseTest extends AbstractIntegrationTest
             // when
             try (final Response response = c.patch("/api/partners/v1/places/" + placeId.value() + "/select", """
                     {
-                        "order_id": "%s",
-                        "place_id": "%s"
+                        "order_id": "%s"
                     }
-                    """.formatted(orderId.value(), placeId.value())))
+                    """.formatted(orderId.value())))
             {
 
                 // then
@@ -81,9 +75,16 @@ public class SelectPlaceUseCaseTest extends AbstractIntegrationTest
             }
 
             Awaitility.await()
-                    .atMost(Duration.ofSeconds(10L))
+                    .atMost(Duration.ofSeconds(15L))
                     .until(() -> transactionManager.executeInTransaction(() -> ordersRepository.findById(orderId)
                             .map(order -> order.contains(placeId))
+                            .orElse(false))
+                    );
+
+            Awaitility.await()
+                    .atMost(Duration.ofSeconds(15L))
+                    .until(() -> transactionManager.executeInTransaction(() -> placesQueryRepository.getPlace(placeId)
+                            .map(order -> !order.isFree())
                             .orElse(false))
                     );
 
@@ -111,13 +112,6 @@ public class SelectPlaceUseCaseTest extends AbstractIntegrationTest
                     );
                 }
             }
-
-            Awaitility.await()
-                    .atMost(Duration.ofSeconds(10L))
-                    .until(() -> transactionManager.executeInTransaction(() -> placesQueryRepository.getPlace(placeId)
-                            .map(order -> !order.isFree())
-                            .orElse(false))
-                    );
 
             try (final Response startedOrderResponse = c.get("/api/partners/v1/places/" + placeId))
             {

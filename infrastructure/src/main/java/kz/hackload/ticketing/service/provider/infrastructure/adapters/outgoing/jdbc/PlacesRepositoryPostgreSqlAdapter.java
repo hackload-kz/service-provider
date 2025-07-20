@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
+import java.sql.Array;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -13,6 +14,7 @@ import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -96,13 +98,13 @@ public final class PlacesRepositoryPostgreSqlAdapter implements PlacesRepository
         }
     }
 
+    record ResultSetRow(UUID id, String eventType, long revision, Instant occurredOn, String data)
+    {
+    }
+
     @Override
     public Optional<Place> findById(final PlaceId placeId)
     {
-        record ResultSetRow(UUID id, String eventType, long revision, Instant occurredOn, String data)
-        {
-        }
-
         final ArrayList<ResultSetRow> rsRows = new ArrayList<>();
 
         final Connection connection = transactionManager.currentConnection();
@@ -167,5 +169,110 @@ public final class PlacesRepositoryPostgreSqlAdapter implements PlacesRepository
         }
 
         return Optional.of(Place.restore(placeId, events));
+    }
+
+    @Override
+    public List<Place> findAll(final Collection<PlaceId> placeIds)
+    {
+        final Map<UUID, List<ResultSetRow>> rsRows = new HashMap<>(placeIds.size());
+
+        final Object[] ids = placeIds.stream().map(PlaceId::toString).toArray();
+
+        final Connection connection = transactionManager.currentConnection();
+
+        try (final PreparedStatement statement = connection.prepareStatement("SELECT * FROM events WHERE aggregate_id = ANY(?)"))
+        {
+            final Array array = connection.createArrayOf("uuid", ids);
+            statement.setArray(1, array);
+
+            try (final ResultSet rs = statement.executeQuery())
+            {
+                if (rs.next())
+                {
+                    do
+                    {
+                        final UUID id = (UUID) rs.getObject("aggregate_id");
+                        final String eventType = rs.getString("event_type");
+                        final long revision = rs.getLong("revision");
+                        final Instant occurredOn = rs.getObject("event_date", OffsetDateTime.class).toInstant();
+
+                        final PGobject pGobject = (PGobject) rs.getObject("data");
+                        final String data = pGobject.getValue();
+
+                        final ResultSetRow row = new ResultSetRow(id, eventType, revision, occurredOn, data);
+                        rsRows.compute(id, (k, v) ->
+                        {
+                            if (v == null)
+                            {
+                                final List<ResultSetRow> rows = new ArrayList<>();
+                                rows.add(row);
+                                return rows;
+                            }
+                            else
+                            {
+                                v.add(row);
+                                return v;
+                            }
+                        });
+                    }
+                    while (rs.next());
+                }
+                else
+                {
+                    return List.of();
+                }
+            }
+        }
+        catch (final SQLException e)
+        {
+            // todo: replace with domain exception
+            throw new RuntimeException(e);
+        }
+
+        final Map<PlaceId, List<PlaceDomainEvent>> events = new HashMap<>(rsRows.size());
+
+        try
+        {
+            for (final Map.Entry<UUID, List<ResultSetRow>> entry : rsRows.entrySet())
+            {
+                final PlaceId placeId = new PlaceId(entry.getKey());
+
+                for (final ResultSetRow row : entry.getValue())
+                {
+                    final PlaceDomainEvent event = switch (row.eventType)
+                    {
+                        case "place_created_event" -> objectMapper.readValue(row.data, PlaceCreatedEvent.class);
+                        case "place_selected_event" -> objectMapper.readValue(row.data, PlaceSelectedEvent.class);
+                        case "place_released_event" -> objectMapper.readValue(row.data, PlaceReleasedEvent.class);
+                        default -> throw new RuntimeException("Unknown event type: " + row.eventType);
+                    };
+
+                    events.compute(placeId, (k, v) ->
+                    {
+                        if (v == null)
+                        {
+                            final List<PlaceDomainEvent> rows = new ArrayList<>();
+                            rows.add(event);
+                            return rows;
+                        }
+                        else
+                        {
+                            v.add(event);
+                            return v;
+                        }
+                    });
+                }
+            }
+
+            return events.entrySet()
+                    .stream()
+                    .map((entry) -> Place.restore(entry.getKey(), entry.getValue()))
+                    .toList();
+        }
+        catch (final JsonProcessingException e)
+        {
+            // todo: replace with domain exception
+            throw new RuntimeException(e);
+        }
     }
 }

@@ -1,6 +1,7 @@
 package kz.hackload.ticketing.service.provider.application;
 
 import kz.hackload.ticketing.service.provider.domain.Clocks;
+import kz.hackload.ticketing.service.provider.domain.orders.ConfirmedOrderCanNotBeCancelledException;
 import kz.hackload.ticketing.service.provider.domain.orders.Order;
 import kz.hackload.ticketing.service.provider.domain.orders.OrderAlreadyCancelledException;
 import kz.hackload.ticketing.service.provider.domain.orders.OrderId;
@@ -25,7 +26,8 @@ public final class CancelOrderApplicationService implements CancelOrderUseCase
     }
 
     @Override
-    public void cancel(final OrderId orderId) throws OrderAlreadyCancelledException
+    public void cancel(final OrderId orderId) throws OrderAlreadyCancelledException,
+            ConfirmedOrderCanNotBeCancelledException
     {
         final Order order = transactionManager.executeInTransaction(() -> ordersRepository.findById(orderId).orElseThrow());
 

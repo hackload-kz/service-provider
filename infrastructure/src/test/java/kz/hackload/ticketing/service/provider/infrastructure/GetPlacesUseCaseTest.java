@@ -16,7 +16,6 @@ import org.junit.jupiter.api.Test;
 import kz.hackload.ticketing.service.provider.domain.places.PlaceId;
 import kz.hackload.ticketing.service.provider.domain.places.Row;
 import kz.hackload.ticketing.service.provider.domain.places.Seat;
-import kz.hackload.ticketing.service.provider.infrastructure.adapters.incoming.http.PlaceTestDto;
 import kz.hackload.ticketing.service.provider.infrastructure.adapters.incoming.http.PlaceResourceJavalinHttpAdapter;
 import kz.hackload.ticketing.service.provider.infrastructure.adapters.incoming.http.PlacesTestDto;
 
@@ -56,7 +55,7 @@ public class GetPlacesUseCaseTest extends AbstractIntegrationTest
                     final PlacesTestDto placesDto = jsonMapper.fromJson(responseBody.string(), PlacesTestDto.class);
                     final List<? extends PlaceId> actual = assertThat(placesDto.places())
                             .hasSize(20)
-                            .map(PlaceTestDto::placeId)
+                            .map(PlacesTestDto.PlaceTestDto::placeId)
                             .actual();
 
                     assertThat(placeIds.containsAll(actual)).isTrue();

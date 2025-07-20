@@ -1,4 +1,4 @@
-package kz.hackload.ticketing.service.provider.infrastructure.adapters.incoming.http;
+package kz.hackload.ticketing.service.provider.infrastructure.adapters.incoming.http.dto;
 
 import java.util.List;
 

@@ -17,10 +17,14 @@ import kz.hackload.ticketing.service.provider.application.SelectPlaceUseCase;
 import kz.hackload.ticketing.service.provider.domain.orders.OrderNotStartedException;
 import kz.hackload.ticketing.service.provider.domain.orders.PlaceNotAddedException;
 import kz.hackload.ticketing.service.provider.domain.orders.PlaceSelectedForAnotherOrderException;
-import kz.hackload.ticketing.service.provider.domain.places.GetPlaceQueryResult;
 import kz.hackload.ticketing.service.provider.domain.places.PlaceAlreadySelectedException;
 import kz.hackload.ticketing.service.provider.domain.places.PlaceCanNotBeAddedToOrderException;
 import kz.hackload.ticketing.service.provider.domain.places.PlaceId;
+import kz.hackload.ticketing.service.provider.infrastructure.adapters.incoming.http.dto.CreatePlaceRequest;
+import kz.hackload.ticketing.service.provider.infrastructure.adapters.incoming.http.dto.CreatePlaceResponse;
+import kz.hackload.ticketing.service.provider.infrastructure.adapters.incoming.http.dto.GetPlaceResponse;
+import kz.hackload.ticketing.service.provider.infrastructure.adapters.incoming.http.dto.GetPlacesResponse;
+import kz.hackload.ticketing.service.provider.infrastructure.adapters.incoming.http.dto.SelectPlaceDto;
 
 public final class PlaceResourceJavalinHttpAdapter
 {
@@ -51,11 +55,11 @@ public final class PlaceResourceJavalinHttpAdapter
 
     private void createPlace(final Context context)
     {
-        final CreatePlaceDto createPlaceDto;
+        final CreatePlaceRequest createPlaceRequest;
 
         try
         {
-            createPlaceDto = context.bodyAsClass(CreatePlaceDto.class);
+            createPlaceRequest = context.bodyAsClass(CreatePlaceRequest.class);
         }
         catch (final Exception e)
         {
@@ -66,12 +70,9 @@ public final class PlaceResourceJavalinHttpAdapter
 
         try
         {
-            final PlaceId placeId = createPlaceUseCase.create(createPlaceDto.row(), createPlaceDto.seat());
-            context.json("""
-                    {
-                        "place_id": "%s"
-                    }
-                    """.formatted(placeId));
+            final PlaceId placeId = createPlaceUseCase.create(createPlaceRequest.row(), createPlaceRequest.seat());
+            final CreatePlaceResponse response = new CreatePlaceResponse(placeId);
+            context.json(response);
             context.status(HttpStatus.ACCEPTED);
         }
         catch (final RuntimeException e)
@@ -84,9 +85,11 @@ public final class PlaceResourceJavalinHttpAdapter
     private void selectPlace(final Context context)
     {
         final SelectPlaceDto selectPlaceDto;
+        final PlaceId placeId;
         try
         {
             selectPlaceDto = context.bodyAsClass(SelectPlaceDto.class);
+            placeId = new PlaceId(UUID.fromString(context.pathParam("id")));
         }
         catch (final Exception e)
         {
@@ -97,7 +100,7 @@ public final class PlaceResourceJavalinHttpAdapter
 
         try
         {
-            selectPlaceUseCase.selectPlaceFor(selectPlaceDto.placeId(), selectPlaceDto.orderId());
+            selectPlaceUseCase.selectPlaceFor(placeId, selectPlaceDto.orderId());
             context.status(HttpStatus.NO_CONTENT);
         }
         catch (final PlaceAlreadySelectedException | PlaceCanNotBeAddedToOrderException e)
@@ -113,11 +116,10 @@ public final class PlaceResourceJavalinHttpAdapter
 
     private void releasePlace(final Context context)
     {
-        final ReleasePlaceDto releasePlaceDto = context.bodyAsClass(ReleasePlaceDto.class);
-
         try
         {
-            removePlaceFromOrderUseCase.removePlaceFromOrder(releasePlaceDto.placeId());
+            final PlaceId placeId = new PlaceId(UUID.fromString(context.pathParam("id")));
+            removePlaceFromOrderUseCase.removePlaceFromOrder(placeId);
             context.status(HttpStatus.NO_CONTENT);
         }
         catch (final OrderNotStartedException | PlaceNotAddedException e)
@@ -143,15 +145,9 @@ public final class PlaceResourceJavalinHttpAdapter
         {
             getPlaceUseCase.getPlace(placeId).ifPresentOrElse(place ->
             {
-                context.json("""
-                        {
-                            "id": "%s",
-                            "row": %s,
-                            "seat": %s,
-                            "is_free": %s
-                        }
-                        """.formatted(place.placeId(), place.row(), place.seat(), place.isFree()));
+                final GetPlaceResponse response = new GetPlaceResponse(place.placeId(), place.row(), place.seat(), place.isFree());
                 context.status(HttpStatus.OK);
+                context.json(response);
             }, () -> context.status(HttpStatus.NOT_FOUND));
         }
         catch (final RuntimeException e)
@@ -168,8 +164,11 @@ public final class PlaceResourceJavalinHttpAdapter
             final int page = getPage(context);
             final int pageSize = getPageSize(context);
 
-            final List<GetPlaceQueryResult> places = getPlaceUseCase.getPlaces(page, pageSize);
-            final PlacesDto placesDto = new PlacesDto(places);
+            final List<GetPlacesResponse.Place> places = getPlaceUseCase.getPlaces(page, pageSize).stream()
+                    .map(p -> new GetPlacesResponse.Place(p.placeId(), p.row(), p.seat(), p.isFree()))
+                    .toList();
+
+            final GetPlacesResponse placesDto = new GetPlacesResponse(places);
             context.json(placesDto);
         }
         catch (final RuntimeException e)

@@ -9,6 +9,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import kz.hackload.ticketing.service.provider.application.JsonMapper;
+import kz.hackload.ticketing.service.provider.application.OrderCancelledEventsHandler;
 import kz.hackload.ticketing.service.provider.application.OrdersProjectionService;
 import kz.hackload.ticketing.service.provider.application.ReleasePlaceUseCase;
 import kz.hackload.ticketing.service.provider.domain.orders.OrderCancelledEvent;
@@ -30,12 +31,17 @@ public final class OrderEventsListener implements DomainEventsListener
     private static final Logger log = LoggerFactory.getLogger(OrderEventsListener.class);
 
     private final JsonMapper jsonMapper;
+    private final OrderCancelledEventsHandler orderCancelledEventsHandler;
     private final OrdersProjectionService ordersProjectionService;
     private final ReleasePlaceUseCase releasePlaceUseCase;
 
-    public OrderEventsListener(final JsonMapper jsonMapper, final OrdersProjectionService ordersProjectionService, final ReleasePlaceUseCase releasePlaceUseCase)
+    public OrderEventsListener(final JsonMapper jsonMapper,
+                               final OrderCancelledEventsHandler orderCancelledEventsHandler,
+                               final OrdersProjectionService ordersProjectionService,
+                               final ReleasePlaceUseCase releasePlaceUseCase)
     {
         this.jsonMapper = jsonMapper;
+        this.orderCancelledEventsHandler = orderCancelledEventsHandler;
         this.ordersProjectionService = ordersProjectionService;
         this.releasePlaceUseCase = releasePlaceUseCase;
     }
@@ -58,17 +64,24 @@ public final class OrderEventsListener implements DomainEventsListener
 
         final OrderDomainEvent event = jsonMapper.fromJson(value, eventType);
 
-        switch (event)
+        try
         {
-            case OrderStartedEvent e -> ordersProjectionService.orderStarted(orderId, e);
-            case PlaceAddedToOrderEvent e -> ordersProjectionService.placeAddedToOrder(orderId, e);
-            case PlaceRemovedFromOrderEvent e -> {
-                releasePlace(e);
-                ordersProjectionService.placeRemovedFromOrder(orderId, e);
+            switch (event)
+            {
+                case OrderStartedEvent e -> ordersProjectionService.orderStarted(orderId, e);
+                case PlaceAddedToOrderEvent e -> ordersProjectionService.placeAddedToOrder(orderId, e);
+                case PlaceRemovedFromOrderEvent e -> {
+                    releasePlace(e);
+                    ordersProjectionService.placeRemovedFromOrder(orderId, e);
+                }
+                case OrderSubmittedEvent e -> ordersProjectionService.orderSubmitted(orderId, e);
+                case OrderConfirmedEvent e -> ordersProjectionService.orderConfirmed(orderId, e);
+                case OrderCancelledEvent e -> orderCancelledEventsHandler.handle(orderId, e);
             }
-            case OrderSubmittedEvent e -> ordersProjectionService.orderSubmitted(orderId, e);
-            case OrderConfirmedEvent e -> ordersProjectionService.orderConfirmed(orderId, e);
-            case OrderCancelledEvent e -> ordersProjectionService.orderCancelled(orderId, e);
+        }
+        catch (final PlaceAlreadyReleasedException e)
+        {
+            throw new RuntimeException(e);
         }
     }
 

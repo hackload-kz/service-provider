@@ -1,4 +1,4 @@
-package kz.hackload.ticketing.service.provider.infrastructure.adapters.incoming.http;
+package kz.hackload.ticketing.service.provider.infrastructure.adapters.incoming.http.dto;
 
 import com.fasterxml.jackson.core.JacksonException;
 import com.fasterxml.jackson.core.JsonParser;
@@ -12,16 +12,16 @@ import java.io.IOException;
 import kz.hackload.ticketing.service.provider.domain.places.Row;
 import kz.hackload.ticketing.service.provider.domain.places.Seat;
 
-public final class CreatePlaceDtoDeserializer extends JsonDeserializer<CreatePlaceDto>
+public final class CreatePlaceRequestDeserializer extends JsonDeserializer<CreatePlaceRequest>
 {
     @Override
-    public CreatePlaceDto deserialize(final JsonParser p, final DeserializationContext ctxt) throws IOException, JacksonException
+    public CreatePlaceRequest deserialize(final JsonParser p, final DeserializationContext ctxt) throws IOException, JacksonException
     {
         final TreeNode treeNode = p.getCodec().readTree(p);
 
         final Row row = new Row(((JsonNode) treeNode.get("row")).asInt());
         final Seat seat = new Seat(((JsonNode) treeNode.get("seat")).asInt());
 
-        return new CreatePlaceDto(row, seat);
+        return new CreatePlaceRequest(row, seat);
     }
 }

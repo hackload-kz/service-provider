@@ -44,7 +44,8 @@ public final class Order extends AggregateRoot<OrderId, OrderDomainEvent>
                 order.apply(event);
             }
             catch (final PlaceNotAddedException | PlaceAlreadyAddedException | NoPlacesAddedException |
-                         OrderNotStartedException | OrderNotSubmittedException | OrderAlreadyCancelledException e)
+                         OrderNotStartedException | OrderNotSubmittedException | OrderAlreadyCancelledException |
+                         ConfirmedOrderCanNotBeCancelledException e)
             {
                 throw new AggregateRestoreException(e);
             }
@@ -106,7 +107,8 @@ public final class Order extends AggregateRoot<OrderId, OrderDomainEvent>
         addEvent(orderConfirmedEvent);
     }
 
-    public void cancel(final Instant cancelledAt) throws OrderAlreadyCancelledException
+    public void cancel(final Instant cancelledAt) throws OrderAlreadyCancelledException,
+            ConfirmedOrderCanNotBeCancelledException
     {
         final long revision = incrementRevision();
         final OrderCancelledEvent orderCancelledEvent = new OrderCancelledEvent(cancelledAt, revision, places());
@@ -119,7 +121,8 @@ public final class Order extends AggregateRoot<OrderId, OrderDomainEvent>
             NoPlacesAddedException,
             OrderNotStartedException,
             OrderNotSubmittedException,
-            OrderAlreadyCancelledException
+            OrderAlreadyCancelledException,
+            ConfirmedOrderCanNotBeCancelledException
     {
         switch (orderDomainEvent)
         {
@@ -191,11 +194,17 @@ public final class Order extends AggregateRoot<OrderId, OrderDomainEvent>
         status = OrderStatus.CONFIRMED;
     }
 
-    private void apply(final OrderCancelledEvent ignored) throws OrderAlreadyCancelledException
+    private void apply(final OrderCancelledEvent ignored) throws OrderAlreadyCancelledException,
+            ConfirmedOrderCanNotBeCancelledException
     {
         if (status == OrderStatus.CANCELLED)
         {
             throw new OrderAlreadyCancelledException(id);
+        }
+
+        if (status == OrderStatus.CONFIRMED)
+        {
+            throw new ConfirmedOrderCanNotBeCancelledException(id);
         }
 
         status = OrderStatus.CANCELLED;

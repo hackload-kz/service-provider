@@ -1,4 +1,4 @@
-package kz.hackload.ticketing.service.provider.infrastructure.adapters.incoming.http;
+package kz.hackload.ticketing.service.provider.infrastructure.adapters.incoming.http.dto;
 
 import com.fasterxml.jackson.core.JacksonException;
 import com.fasterxml.jackson.core.JsonParser;
@@ -11,7 +11,6 @@ import java.io.IOException;
 import java.util.UUID;
 
 import kz.hackload.ticketing.service.provider.domain.orders.OrderId;
-import kz.hackload.ticketing.service.provider.domain.places.PlaceId;
 
 public final class SelectPlaceDtoDeserializer extends JsonDeserializer<SelectPlaceDto>
 {
@@ -21,8 +20,7 @@ public final class SelectPlaceDtoDeserializer extends JsonDeserializer<SelectPla
         final TreeNode treeNode = p.getCodec().readTree(p);
 
         final OrderId orderId = new OrderId(UUID.fromString(((JsonNode)treeNode.get("order_id")).asText()));
-        final PlaceId placeId = new PlaceId(UUID.fromString(((JsonNode)treeNode.get("place_id")).asText()));
 
-        return new SelectPlaceDto(orderId, placeId);
+        return new SelectPlaceDto(orderId);
     }
 }

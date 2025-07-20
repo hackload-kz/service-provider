@@ -49,24 +49,27 @@ public class CreatePlaceUseCaseTest extends AbstractIntegrationTest
                     """.formatted(row, seat)))
             {
                 assertThat(response.isSuccessful()).isTrue();
-                final ResponseBody responseBody = response.body();
-                assertThat(responseBody).isNotNull();
+                try (final ResponseBody responseBody = response.body())
+                {
+                    assertThat(responseBody).isNotNull();
 
-                final Map<?, ?> map = jsonMapper.fromJson(responseBody.string(), Map.class);
-                final PlaceId placeId = new PlaceId(UUID.fromString((String) map.get("place_id")));
+                    final Map<?, ?> map = jsonMapper.fromJson(responseBody.string(), Map.class);
+                    final PlaceId placeId = new PlaceId(UUID.fromString((String) map.get("place_id")));
 
-                Awaitility.await()
-                        .atMost(Duration.ofSeconds(10L))
-                        .until(() -> placesQueryRepository.getPlace(placeId).isPresent());
+                    Awaitility.await()
+                            .atMost(Duration.ofSeconds(30L))
+                            .until(() -> placesQueryRepository.getPlace(placeId).isPresent());
 
-                // then
-                final Place actual = transactionManager.executeInTransaction(() -> placesRepository.findById(placeId).orElseThrow());
-                assertThat(actual.id()).isEqualTo(placeId);
-                assertThat(actual.isFree()).isTrue();
-                assertThat(actual.selectedFor()).isEmpty();
+                    // then
+                    final Place actual = transactionManager.executeInTransaction(() -> placesRepository.findById(placeId).orElseThrow());
+                    assertThat(actual.id()).isEqualTo(placeId);
+                    assertThat(actual.isFree()).isTrue();
+                    assertThat(actual.selectedFor()).isEmpty();
 
-                final GetPlaceQueryResult getPlaceQueryResult = transactionManager.executeInTransaction(() -> placesQueryRepository.getPlace(placeId)).orElseThrow();
-                assertThat(getPlaceQueryResult).isEqualTo(new GetPlaceQueryResult(placeId, row, seat, true));
+                    final GetPlaceQueryResult getPlaceQueryResult = transactionManager.executeInTransaction(() -> placesQueryRepository.getPlace(placeId)).orElseThrow();
+                    assertThat(getPlaceQueryResult).isEqualTo(new GetPlaceQueryResult(placeId, row, seat, true));
+                }
+
             }
         });
     }

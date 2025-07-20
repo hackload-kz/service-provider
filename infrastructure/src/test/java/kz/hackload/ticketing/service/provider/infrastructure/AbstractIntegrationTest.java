@@ -39,6 +39,7 @@ import kz.hackload.ticketing.service.provider.application.EventsDispatcher;
 import kz.hackload.ticketing.service.provider.application.GetOrderUseCase;
 import kz.hackload.ticketing.service.provider.application.GetPlaceUseCase;
 import kz.hackload.ticketing.service.provider.application.JsonMapper;
+import kz.hackload.ticketing.service.provider.application.OrderCancelledEventsHandler;
 import kz.hackload.ticketing.service.provider.application.OrdersProjectionService;
 import kz.hackload.ticketing.service.provider.application.OrdersQueryService;
 import kz.hackload.ticketing.service.provider.application.OutboxScheduler;
@@ -224,7 +225,8 @@ public abstract class AbstractIntegrationTest
         placeEventskafkaMessagesListener = new KafkaMessagesListener(consumer, "place-events", placeEventsListener);
 
         final OrdersProjectionService ordersProjectionService = new OrdersProjectionService(ordersProjectionsRepository);
-        final OrderEventsListener orderEventsListener = new OrderEventsListener(jsonMapper, ordersProjectionService, releasePlaceUseCase);
+        final OrderCancelledEventsHandler orderCancelledEventsHandler = new OrderCancelledEventsHandler(ordersProjectionService, releasePlaceUseCase);
+        final OrderEventsListener orderEventsListener = new OrderEventsListener(jsonMapper, orderCancelledEventsHandler, ordersProjectionService, releasePlaceUseCase);
         final KafkaConsumer<String, String> orderEventsKafkaConsumer = new KafkaConsumer<>(properties);
         orderEventsKafkaListener = new KafkaMessagesListener(orderEventsKafkaConsumer, "order-events", orderEventsListener);
 

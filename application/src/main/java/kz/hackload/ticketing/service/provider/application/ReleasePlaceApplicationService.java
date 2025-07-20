@@ -1,5 +1,11 @@
 package kz.hackload.ticketing.service.provider.application;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
+
 import kz.hackload.ticketing.service.provider.domain.orders.Order;
 import kz.hackload.ticketing.service.provider.domain.orders.OrderId;
 import kz.hackload.ticketing.service.provider.domain.orders.OrdersRepository;
@@ -47,6 +53,38 @@ public final class ReleasePlaceApplicationService implements ReleasePlaceUseCase
         {
             eventsDispatcher.dispatch(placeId, place.uncommittedEvents());
             placesRepository.save(place);
+        });
+    }
+
+    @Override
+    public void releasePlacesFromSingleOrder(final Set<PlaceId> placeIds) throws PlaceAlreadyReleasedException
+    {
+        final List<Place> places = transactionManager.executeInTransaction(() -> placesRepository.findAll(placeIds));
+
+        final List<OrderId> orderIds = places.stream()
+                .map(Place::selectedFor)
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .distinct()
+                .toList();
+
+        if (orderIds.size() != 1)
+        {
+            throw new IllegalStateException();
+        }
+
+        final OrderId orderId = orderIds.getFirst();
+        final Order order = transactionManager.executeInTransaction(() -> ordersRepository.findById(orderId).orElseThrow());
+
+        for (final Place place : places)
+        {
+            releasePlaceService.release(order, place);
+        }
+
+        transactionManager.executeInTransaction(() ->
+        {
+           places.forEach(place -> eventsDispatcher.dispatch(place.id(), place.uncommittedEvents()));
+           places.forEach(placesRepository::save);
         });
     }
 }
