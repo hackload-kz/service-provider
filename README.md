@@ -15,7 +15,7 @@
     ```
 2. Run docker-compose
     ```shell
-    docker-compose --file docker-compose/docker-compose.yaml up --detach
+    sh run.sh
     ```
 
 TO BE DONE...
