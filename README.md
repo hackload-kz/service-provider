@@ -35,7 +35,7 @@ TO BE DONE...
    The result
    ```json
    {
-      "place_id": "ed8897a4-26e6-4fcc-a645-811f26cb673c"
+      "place_id": "10c2cc4b-4606-4397-8d77-ab6399322125"
    }
    ```
 
@@ -47,7 +47,7 @@ TO BE DONE...
    The result
    ```json
    {
-      "order_id": "4d9ea8d5-d0d8-4e87-bea4-275a02f9d6ef"
+      "order_id": "7b8ae762-bef4-4d42-a4dc-2b1b4f1c010e"
    }
    ```
 2. List places
@@ -58,7 +58,7 @@ TO BE DONE...
    ```json
    [
       {
-          "id": "ed8897a4-26e6-4fcc-a645-811f26cb673c",
+          "id": "10c2cc4b-4606-4397-8d77-ab6399322125",
           "row": 1,
           "seat": 1,
           "is_free": true
@@ -67,10 +67,10 @@ TO BE DONE...
    ```
 3. Select a place for a started order
    ```shell
-   curl -X PATCH --verbose --location "http://localhost:8080/api/partners/v1/places/bc8dcae3-4174-4a93-8562-9d88f59f2711/select" \
+   curl -X PATCH --verbose --location "http://localhost:8080/api/partners/v1/places/10c2cc4b-4606-4397-8d77-ab6399322125/select" \
     -H "Content-Type: application/json" \
     -d '{
-          "order_id": "915e008e-3b84-4da4-a7a7-5835bf11a5b1"
+          "order_id": "7b8ae762-bef4-4d42-a4dc-2b1b4f1c010e"
         }'
    ```
    The result does not have a response body
@@ -82,7 +82,7 @@ TO BE DONE...
    ```json
    [
       {
-        "id": "ed8897a4-26e6-4fcc-a645-811f26cb673c",
+        "id": "10c2cc4b-4606-4397-8d77-ab6399322125",
         "row": 1,
         "seat": 1,
         "is_free": false
@@ -91,26 +91,26 @@ TO BE DONE...
    ```
 5. (Optionally) Release place. Place can be manually released only from started order
    ```shell
-   curl -X PATCH --verbose --location "http://localhost:8080/api/partners/v1/places/3d058a47-f7da-411a-85ba-3ccb9cd6e2d3/release"
+   curl -X PATCH --verbose --location "http://localhost:8080/api/partners/v1/places/10c2cc4b-4606-4397-8d77-ab6399322125/release"
    ```
    The result does not have a response body
 6. Get an order
    ```shell
-   curl -X GET --verbose --location "http://localhost:8080/api/partners/v1/orders/915e008e-3b84-4da4-a7a7-5835bf11a5b1"
+   curl -X GET --verbose --location "http://localhost:8080/api/partners/v1/orders/7b8ae762-bef4-4d42-a4dc-2b1b4f1c010e"
    ```
    The result
    ```json
    {
-      "id": "4d9ea8d5-d0d8-4e87-bea4-275a02f9d6ef",
+      "id": "7b8ae762-bef4-4d42-a4dc-2b1b4f1c010e",
       "status": "STARTED",
-      "started_at": "2025-07-18T07:04:39Z",
-      "updated_at": "2025-07-18T07:06:38Z",
-      "places_count": 1
+      "started_at": "2025-07-20T07:31:05Z",
+      "updated_at": "2025-07-20T07:31:48Z",
+      "places_count": 0
    }
    ```
-7. (Optionally) Cancel an order. A confirmed order can not be cancelled
+7. (Optionally) Cancel an order. A confirmed order can not be cancelled. It is a terminal status for an order. You can not do anything with the order anymore.
    ```shell
-   curl -X PATCH --verbose --location "http://localhost:8080/api/partners/v1/orders/915e008e-3b84-4da4-a7a7-5835bf11a5b1/cancel"
+   curl -X PATCH --verbose --location "http://localhost:8080/api/partners/v1/orders/7b8ae762-bef4-4d42-a4dc-2b1b4f1c010e/cancel"
    ```
 8. Submit an order. Now you can not add or remove places from the order. You can only confirm or cancel the order.
    ```shell

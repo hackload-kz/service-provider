@@ -37,6 +37,7 @@ import kz.hackload.ticketing.service.provider.domain.places.PlaceCanNotBeAddedTo
 import kz.hackload.ticketing.service.provider.domain.places.PlaceId;
 import kz.hackload.ticketing.service.provider.domain.places.Row;
 import kz.hackload.ticketing.service.provider.domain.places.Seat;
+import kz.hackload.ticketing.service.provider.infrastructure.adapters.incoming.http.OrderDto;
 import kz.hackload.ticketing.service.provider.infrastructure.adapters.incoming.http.OrderResourcesJavalinHttpAdapter;
 import kz.hackload.ticketing.service.provider.infrastructure.adapters.incoming.http.PlaceResourceJavalinHttpAdapter;
 import kz.hackload.ticketing.service.provider.infrastructure.adapters.incoming.http.PlacesTestDto;
@@ -94,11 +95,11 @@ public class CancelOrderUseCaseTest extends AbstractIntegrationTest
                     .atMost(Duration.ofSeconds(10L))
                     .until(() -> ordersQueryRepository.getOrder(orderId).map(o -> o.status() == OrderStatus.CANCELLED).orElse(false));
 
-            try (final Response startedOrderResponse = c.get("/api/partners/v1/orders/" + orderId))
+            try (final Response getOrderResponse = c.get("/api/partners/v1/orders/" + orderId))
             {
-                assertThat(startedOrderResponse.isSuccessful()).isTrue();
+                assertThat(getOrderResponse.isSuccessful()).isTrue();
 
-                try (final ResponseBody order = startedOrderResponse.body())
+                try (final ResponseBody order = getOrderResponse.body())
                 {
                     assertThat(order).isNotNull();
                     assertThatJson(order.string()).isEqualTo("""
@@ -114,7 +115,7 @@ public class CancelOrderUseCaseTest extends AbstractIntegrationTest
                             "CANCELLED",
                             DateTimeFormatter.ISO_INSTANT.format(startTime.truncatedTo(ChronoUnit.SECONDS)),
                             DateTimeFormatter.ISO_INSTANT.format(cancelTime.truncatedTo(ChronoUnit.SECONDS)),
-                            1)
+                            0)
                     );
                 }
             }
@@ -127,6 +128,7 @@ public class CancelOrderUseCaseTest extends AbstractIntegrationTest
         // given
         JavalinTest.test(server, (s, c) ->
         {
+            clocks.setClock(Clock.fixed(Instant.now(), ZoneId.systemDefault()));
             final Row row = new Row(1);
             final Seat seat = new Seat(1);
 
@@ -206,6 +208,17 @@ public class CancelOrderUseCaseTest extends AbstractIntegrationTest
 
                 final PlacesTestDto places = jsonMapper.fromJson(responseBody.string(), PlacesTestDto.class);
                 assertThat(places.places()).hasSize(1).first().isEqualTo(new PlacesTestDto.PlaceTestDto(placeId, row, seat, true));
+            }
+
+            try (final Response getOrderResponse = c.get("/api/partners/v1/orders/" + orderId))
+            {
+                assertThat(getOrderResponse.isSuccessful()).isTrue();
+
+                final ResponseBody responseBody = getOrderResponse.body();
+                assertThat(responseBody).isNotNull();
+
+                final OrderDto order = jsonMapper.fromJson(responseBody.string(), OrderDto.class);
+                assertThat(order).isEqualTo(new OrderDto(orderId, OrderStatus.CANCELLED, clocks.now().truncatedTo(ChronoUnit.SECONDS), clocks.now().truncatedTo(ChronoUnit.SECONDS), 0));
             }
         });
     }

@@ -142,7 +142,7 @@ public final class OrdersProjectionsRepositoryPostgreSqlAdapter implements Order
     public void orderCancelled(final OrderId orderId, final Instant orderCancelledAt)
     {
         try (final Connection connection = dataSource.getConnection();
-             final PreparedStatement statement = connection.prepareStatement("UPDATE orders SET status = 'CANCELLED', updated_at = ? WHERE id = ?"))
+             final PreparedStatement statement = connection.prepareStatement("UPDATE orders SET status = 'CANCELLED', updated_at = ?, places_count = 0 WHERE id = ?"))
         {
             statement.setObject(1, orderCancelledAt.atOffset(ZoneOffset.UTC));
 
