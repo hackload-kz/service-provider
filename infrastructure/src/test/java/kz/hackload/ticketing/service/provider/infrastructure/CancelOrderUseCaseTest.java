@@ -7,8 +7,6 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
-import java.time.temporal.ChronoUnit;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
@@ -106,15 +104,15 @@ public class CancelOrderUseCaseTest extends AbstractIntegrationTest
                             {
                                 "id": "%s",
                                 "status": "%s",
-                                "started_at": "%s",
-                                "updated_at": "%s",
+                                "started_at": %s,
+                                "updated_at": %s,
                                 "places_count": %s
                             }
                             """.formatted(
                             orderId,
                             "CANCELLED",
-                            DateTimeFormatter.ISO_INSTANT.format(startTime.truncatedTo(ChronoUnit.SECONDS)),
-                            DateTimeFormatter.ISO_INSTANT.format(cancelTime.truncatedTo(ChronoUnit.SECONDS)),
+                            startTime.toEpochMilli(),
+                            cancelTime.toEpochMilli(),
                             0)
                     );
                 }
@@ -218,7 +216,7 @@ public class CancelOrderUseCaseTest extends AbstractIntegrationTest
                 assertThat(responseBody).isNotNull();
 
                 final OrderDto order = jsonMapper.fromJson(responseBody.string(), OrderDto.class);
-                assertThat(order).isEqualTo(new OrderDto(orderId, OrderStatus.CANCELLED, clocks.now().truncatedTo(ChronoUnit.SECONDS), clocks.now().truncatedTo(ChronoUnit.SECONDS), 0));
+                assertThat(order).isEqualTo(new OrderDto(orderId, OrderStatus.CANCELLED, Instant.ofEpochMilli(clocks.now().toEpochMilli()), Instant.ofEpochMilli(clocks.now().toEpochMilli()), 0));
             }
         });
     }

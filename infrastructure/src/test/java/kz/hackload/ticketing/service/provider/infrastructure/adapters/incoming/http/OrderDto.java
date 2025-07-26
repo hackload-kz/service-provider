@@ -10,7 +10,6 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 
 import java.io.IOException;
 import java.time.Instant;
-import java.time.format.DateTimeFormatter;
 import java.util.UUID;
 
 import kz.hackload.ticketing.service.provider.domain.orders.OrderId;
@@ -27,8 +26,8 @@ public record OrderDto(OrderId id, OrderStatus status, Instant startedAt, Instan
             final TreeNode treeNode = p.getCodec().readTree(p);
             final OrderId orderId = new OrderId(UUID.fromString(((JsonNode) treeNode.get("id")).asText()));
             final OrderStatus orderStatus = OrderStatus.valueOf(((JsonNode) treeNode.get("status")).asText());
-            final Instant startedAt = Instant.from(DateTimeFormatter.ISO_INSTANT.parse(((JsonNode) treeNode.get("started_at")).asText()));
-            final Instant updatedAt = Instant.from(DateTimeFormatter.ISO_INSTANT.parse(((JsonNode) treeNode.get("updated_at")).asText()));
+            final Instant startedAt = Instant.ofEpochMilli(((JsonNode) treeNode.get("started_at")).asLong());
+            final Instant updatedAt = Instant.ofEpochMilli(((JsonNode) treeNode.get("updated_at")).asLong());
             final long placesCount = ((JsonNode) treeNode.get("places_count")).asLong();
 
             return new OrderDto(orderId, orderStatus, startedAt, updatedAt, placesCount);

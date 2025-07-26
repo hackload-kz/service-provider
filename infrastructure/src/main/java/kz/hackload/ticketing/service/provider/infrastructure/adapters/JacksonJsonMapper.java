@@ -11,7 +11,7 @@ public final class JacksonJsonMapper implements JsonMapper
 {
     private final ObjectMapper objectMapper = new ObjectMapper()
             .registerModule(new JavaTimeModule())
-            .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+            .enable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
 
     @Override
     public <T> String toJson(final T object)

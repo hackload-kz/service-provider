@@ -7,8 +7,6 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
-import java.time.temporal.ChronoUnit;
 
 import io.javalin.testtools.JavalinTest;
 
@@ -100,15 +98,15 @@ public class ConfirmOrderUseCaseTest extends AbstractIntegrationTest
                                 {
                                     "id": "%s",
                                     "status": "%s",
-                                    "started_at": "%s",
-                                    "updated_at": "%s",
+                                    "started_at": %s,
+                                    "updated_at": %s,
                                     "places_count": %s
                                 }
                                 """.formatted(
                             orderId,
                             "CONFIRMED",
-                            DateTimeFormatter.ISO_INSTANT.format(startTime.truncatedTo(ChronoUnit.SECONDS)),
-                            DateTimeFormatter.ISO_INSTANT.format(confirmTime.truncatedTo(ChronoUnit.SECONDS)),
+                            startTime.toEpochMilli(),
+                            confirmTime.toEpochMilli(),
                             1)
                     );
                 }

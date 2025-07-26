@@ -7,8 +7,6 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
-import java.time.temporal.ChronoUnit;
 
 import io.javalin.testtools.JavalinTest;
 
@@ -86,15 +84,15 @@ public class SubmitOrderUseCaseTest extends AbstractIntegrationTest
                                 {
                                     "id": "%s",
                                     "status": "%s",
-                                    "started_at": "%s",
-                                    "updated_at": "%s",
+                                    "started_at": %s,
+                                    "updated_at": %s,
                                     "places_count": %s
                                 }
                                 """.formatted(
                             orderId,
                             "SUBMITTED",
-                            DateTimeFormatter.ISO_INSTANT.format(startTime.truncatedTo(ChronoUnit.SECONDS)),
-                            DateTimeFormatter.ISO_INSTANT.format(submitTime.truncatedTo(ChronoUnit.SECONDS)),
+                            startTime.toEpochMilli(),
+                            submitTime.toEpochMilli(),
                             1)
                     );
                 }
