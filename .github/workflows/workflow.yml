@@ -40,3 +40,59 @@ jobs:
           tags:
             ${{ steps.base-meta.outputs.tags }}
             ${{ env.REGISTRY }}/${{ env.BASE_IMAGE_NAME }}:pkg-${{ github.sha }}
+
+  deploy:
+    runs-on: [self-hosted]
+    needs: [build]
+    if: github.ref == 'refs/heads/main'
+    
+    permissions:
+      contents: read
+      packages: read
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Setup kubectl
+      uses: azure/setup-kubectl@v3
+      with:
+        version: 'v1.28.0'
+
+    - name: Configure kubectl
+      run: |
+        mkdir -p ~/.kube
+        echo "${{ secrets.KUBE_CONFIG }}" | base64 -d > ~/.kube/config
+        chmod 600 ~/.kube/config
+
+    - name: Verify kubectl connection
+      run: |
+        kubectl cluster-info
+        kubectl get nodes
+
+    - name: Update deployment image
+      run: |
+        kubectl set image deployment/service-provider \
+          service-provider=${{ env.REGISTRY }}/${{ env.BASE_IMAGE_NAME }}:pkg-${{ github.sha }} \
+          -n service-provider
+        
+        echo "Updated deployment with image: ${{ env.REGISTRY }}/${{ env.BASE_IMAGE_NAME }}:pkg-${{ github.sha }}"
+
+    - name: Wait for rollout
+      run: |
+        kubectl rollout status deployment/service-provider -n service-provider --timeout=300s
+
+    - name: Verify deployment
+      run: |
+        kubectl get pods -n service-provider -l app=service-provider
+        kubectl get deployment service-provider -n service-provider -o wide
+        echo "Deployment successful!"
+
+    - name: Get deployment info
+      run: |
+        echo "### Deployment Summary" >> $GITHUB_STEP_SUMMARY
+        echo "- **Image**: ${{ env.REGISTRY }}/${{ env.BASE_IMAGE_NAME }}:pkg-${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Namespace**: service-provider" >> $GITHUB_STEP_SUMMARY
+        echo "- **Deployment**: service-provider" >> $GITHUB_STEP_SUMMARY
+        echo "- **Status**: $(kubectl get deployment service-provider -n service-provider -o jsonpath='{.status.conditions[?(@.type=="Available")].status}')" >> $GITHUB_STEP_SUMMARY
+        echo "- **Ready Replicas**: $(kubectl get deployment service-provider -n service-provider -o jsonpath='{.status.readyReplicas}')/$(kubectl get deployment service-provider -n service-provider -o jsonpath='{.spec.replicas}')" >> $GITHUB_STEP_SUMMARY
