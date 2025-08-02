@@ -1,0 +1,106 @@
+otel-traces-pipeline:
+  workers: 1
+  delay: "100"
+  source:
+    otel_trace_source:
+      port: 21890
+      ssl: false
+      #      compression: gzip
+      #      proto_reflection_service: true
+      authentication:
+        unauthenticated:
+  buffer:
+    bounded_blocking:
+      buffer_size: 25600
+      batch_size: 3200
+  sink:
+    - stdout:
+    - pipeline:
+        name: "raw-traces-pipeline"
+    - pipeline:
+        name: "service-map-pipeline"
+
+raw-traces-pipeline:
+  # Configure same as the otel-traces-pipeline
+  workers: 1
+  # We recommend using the default value for the raw-pipeline.
+  delay: "100"
+  source:
+    pipeline:
+      name: "otel-traces-pipeline"
+  buffer:
+    bounded_blocking:
+      # Configure the same value as in otel-traces-pipeline
+      # Make sure you configure sufficient heap
+      # default value is 12800
+      buffer_size: 25600
+      # This is the maximum number of request each worker thread will process within the delay.
+      # Default is 200.
+      # Make sure buffer_size >= workers * batch_size
+      # The raw processor does bulk request to your OpenSearch sink, so configure the batch_size higher.
+      batch_size: 3200
+  processor:
+    - otel_traces:
+    - otel_trace_group:
+        hosts: [ "http://opensearch-node1:9200","http://opensearch-node2:9200" ]
+        # Change to your credentials
+        username: "admin"
+        password: "<PASSWORD>"
+        # Add a certificate file if you are accessing an OpenSearch cluster with a self-signed certificate
+        #cert: /path/to/cert
+        # If you are connecting to an Amazon OpenSearch Service domain without
+        # Fine-Grained Access Control, enable these settings. Comment out the
+        # username and password above.
+        #aws_sigv4: true
+        #aws_region: us-east-1
+  sink:
+    - opensearch:
+        hosts: [ "http://opensearch-node1:9200","http://opensearch-node2:9200" ]
+        index_type: trace-analytics-raw
+        # Change to your credentials
+        username: "admin"
+        password: "<PASSWORD>"
+        # Add a certificate file if you are accessing an OpenSearch cluster with a self-signed certificate
+        #cert: /path/to/cert
+        # If you are connecting to an Amazon OpenSearch Service domain without
+        # Fine-Grained Access Control, enable these settings. Comment out the
+        # username and password above.
+        #aws_sigv4: true
+        #aws_region: us-east-1
+service-map-pipeline:
+  workers: 8
+  delay: "100"
+  source:
+    pipeline:
+      name: "otel-traces-pipeline"
+  processor:
+    - service_map:
+        # The window duration is the maximum length of time the data prepper stores the most recent trace data to evaluvate service-map relationships.
+        # The default is 3 minutes, this means we can detect relationships between services from spans reported in last 3 minutes.
+        # Set higher value if your applications have higher latency.
+        window_duration: 180
+  buffer:
+    bounded_blocking:
+      # buffer_size is the number of ExportTraceRequest from otel-collector the data prepper should hold in memeory.
+      # We recommend to keep the same buffer_size for all pipelines.
+      # Make sure you configure sufficient heap
+      # default value is 12800
+      buffer_size: 25600
+      # This is the maximum number of request each worker thread will process within the delay.
+      # Default is 200.
+      # Make sure buffer_size >= workers * batch_size
+      batch_size: 400
+  sink:
+    - opensearch:
+        hosts: [ "http://opensearch-node1:9200","http://opensearch-node2:9200" ]
+        index_type: trace-analytics-service-map
+        # Change to your credentials
+        username: "admin"
+        password: "<PASSWORD>"
+        # Add a certificate file if you are accessing an OpenSearch cluster with a self-signed certificate
+        #cert: /path/to/cert
+        # If you are connecting to an Amazon OpenSearch Service domain without
+        # Fine-Grained Access Control, enable these settings. Comment out the
+        # username and password above.
+        #aws_sigv4: true
+        #aws_region: us-east-1

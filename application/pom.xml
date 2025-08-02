@@ -20,6 +20,7 @@
 
         <!-- Observability -->
         <slfj.version>2.0.17</slfj.version>
+        <io.opentelemetry.instrumentation.version>2.18.1</io.opentelemetry.instrumentation.version>
 
         <!-- Testing -->
         <junit.version>5.12.1</junit.version>
@@ -68,6 +69,11 @@
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
             <version>${slfj.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.opentelemetry.instrumentation</groupId>
+            <artifactId>opentelemetry-instrumentation-annotations</artifactId>
+            <version>${io.opentelemetry.instrumentation.version}</version>
         </dependency>
 
         <!-- Testing -->

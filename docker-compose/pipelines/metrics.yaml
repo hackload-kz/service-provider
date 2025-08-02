@@ -1,0 +1,29 @@
+otel-metrics-pipeline:
+  workers: 1
+  delay: "100"
+  buffer:
+    bounded_blocking:
+      buffer_size: 25600
+      batch_size: 3200
+  source:
+    otel_metrics_source:
+      port: 21891
+      ssl: false
+      authentication:
+        unauthenticated:
+  processor:
+    - otel_metrics:
+        calculate_histogram_buckets: true
+        calculate_exponential_histogram_buckets: true
+        exponential_histogram_max_allowed_scale: 10
+        flatten_attributes: false
+  sink:
+    - opensearch:
+        hosts: [ "http://opensearch-node1:9200","http://opensearch-node2:9200" ]
+        username: "admin"
+        password: "<PASSWORD>"
+        insecure: true
+        index_type: custom
+        index: service-provider-metrics-%{yyyy.MM.dd}
+        #max_retries: 20
+        bulk_size: 4

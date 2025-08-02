@@ -1,0 +1,30 @@
+otel-logs-pipeline:
+  workers: 1
+  delay: "100"
+  buffer:
+    bounded_blocking:
+      buffer_size: 512
+      batch_size: 64
+  source:
+    otel_logs_source:
+      port: 21892
+      compression: gzip
+      proto_reflection_service: true
+      ssl: false
+      authentication:
+        unauthenticated:
+  processor:
+    - grok:
+        match:
+          log: [ "%{COMMONAPACHELOG}" ]
+  sink:
+    #    - stdout:
+    - opensearch:
+        hosts: [ "http://opensearch-node1:9200","http://opensearch-node2:9200" ]
+        insecure: true
+        username: "admin"
+        password: "<PASSWORD>"
+        bulk_size: 10
+        index_type: custom
+        index: service-provider-logs-%{yyyy.MM.dd}
+        number_of_replicas: 0

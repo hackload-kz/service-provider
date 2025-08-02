@@ -2,7 +2,7 @@ services:
   service-provider:
     build: ../.
     environment:
-      DB_JDBC_URL: jdbc:postgresql://postgresql:5432/hackload_ticketing_sp
+      DB_JDBC_URL: jdbc:postgresql://service-provider-db:5432/hackload_ticketing_sp
       DB_JDBC_USER: hackload_ticketing_sp
       DB_JDBC_PASSWORD: hackload_ticketing_sp
       DB_CONNECTION_POOL_SIZE: 16
@@ -11,15 +11,17 @@ services:
     ports:
       - "8080:8080"
     depends_on:
-      postgresql:
+      service-provider-db:
         condition: service_healthy
+      service-provider-db-liquibase-migrations:
+        condition: service_completed_successfully
       kafka-0:
         condition: service_healthy
       kafka-1:
         condition: service_healthy
       kafka-2:
         condition: service_healthy
-  postgresql:
+  service-provider-db:
     image: postgres
     environment:
       POSTGRES_DB: hackload_ticketing_sp
@@ -33,16 +35,16 @@ services:
       interval: 1s
       timeout: 5s
       retries: 5
-  db-liquibase-migrations:
+  service-provider-db-liquibase-migrations:
     build: ../db-migrations/.
     command: update
     environment:
-      LIQUIBASE_COMMAND_URL: jdbc:postgresql://postgresql:5432/hackload_ticketing_sp
+      LIQUIBASE_COMMAND_URL: jdbc:postgresql://service-provider-db:5432/hackload_ticketing_sp
       LIQUIBASE_COMMAND_USERNAME: hackload_ticketing_sp
       LIQUIBASE_COMMAND_PASSWORD: hackload_ticketing_sp
       LIQUIBASE_COMMAND_CHANGELOG_FILE: changelog/changelog.xml
     depends_on:
-      postgresql:
+      service-provider-db:
         condition: service_healthy
   kafka-0:
     image: "bitnami/kafka:latest"
@@ -113,3 +115,93 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
+
+  opensearch-node1:
+    image: opensearchproject/opensearch:latest
+    container_name: opensearch-node1
+    environment:
+      - cluster.name=opensearch-cluster
+      - node.name=opensearch-node1
+      - discovery.seed_hosts=opensearch-node1,opensearch-node2
+      - cluster.initial_cluster_manager_nodes=opensearch-node1,opensearch-node2
+      - bootstrap.memory_lock=true
+      - OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m
+      - DISABLE_SECURITY_PLUGIN=true
+      - DISABLE_INSTALL_DEMO_CONFIG=true
+      - OPENSEARCH_INITIAL_ADMIN_PASSWORD=1.;sgKo4E@Vt8gS3a|{6-$}X
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+#    volumes:
+#      - opensearch-data1:/usr/share/opensearch/data
+    ports:
+      - "9200:9200"
+      - "9600:9600"
+  opensearch-node2:
+    image: opensearchproject/opensearch:latest
+    container_name: opensearch-node2
+    environment:
+      - cluster.name=opensearch-cluster
+      - node.name=opensearch-node2
+      - discovery.seed_hosts=opensearch-node1,opensearch-node2
+      - cluster.initial_cluster_manager_nodes=opensearch-node1,opensearch-node2
+      - bootstrap.memory_lock=true
+      - OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m
+      - DISABLE_SECURITY_PLUGIN=true
+      - DISABLE_INSTALL_DEMO_CONFIG=true
+      - OPENSEARCH_INITIAL_ADMIN_PASSWORD=1.;sgKo4E@Vt8gS3a|{6-$}X
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+#    volumes:
+#      - opensearch-data2:/usr/share/opensearch/data
+  opensearch-dashboards:
+    image: opensearchproject/opensearch-dashboards:latest
+    container_name: opensearch-dashboards
+    ports:
+      - "5601:5601"
+    environment:
+      OPENSEARCH_HOSTS: '["http://opensearch-node1:9200","http://opensearch-node2:9200"]'
+      DISABLE_SECURITY_DASHBOARDS_PLUGIN: "true"
+    depends_on:
+      - opensearch-node1
+      - opensearch-node2
+  data-prepper:
+    image: opensearchproject/data-prepper:latest
+    container_name: data-prepper
+    environment:
+      - LOG_LEVEL=DEBUG
+    volumes:
+      - ./pipelines:/usr/share/data-prepper/pipelines
+    ports:
+      - "21890:21890"
+      - "21891:21891"
+      - "21892:21892"
+    depends_on:
+      - opensearch-node1
+      - opensearch-node2
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:latest
+    container_name: otel-collector
+    command: ["--config=/etc/otel-collector-config.yaml"]
+    volumes:
+      - ./otel-collector-config.yaml:/etc/otel-collector-config.yaml
+      - ./data/logs.json:/logs.json
+    ports:
+      - "4317:4317"
+      - "4318:4318"
+      - "8889:8889"
+    depends_on:
+      - data-prepper
+
+#volumes:
+#  opensearch-data1:
+#  opensearch-data2:

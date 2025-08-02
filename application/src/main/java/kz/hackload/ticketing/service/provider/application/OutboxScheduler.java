@@ -10,6 +10,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.opentelemetry.api.trace.SpanKind;
+import io.opentelemetry.instrumentation.annotations.WithSpan;
 import kz.hackload.ticketing.service.provider.domain.outbox.OutboxMessage;
 import kz.hackload.ticketing.service.provider.domain.outbox.OutboxRepository;
 
@@ -73,6 +75,7 @@ public final class OutboxScheduler
         LOG.info("Outbox scheduler is stopped");
     }
 
+    @WithSpan(kind = SpanKind.INTERNAL, inheritContext = false)
     public void sendScheduledOrders()
     {
         try
@@ -97,6 +100,7 @@ public final class OutboxScheduler
         }
     }
 
+    @WithSpan(kind = SpanKind.INTERNAL, inheritContext = false)
     public void sendScheduledPlaces()
     {
         try

@@ -18,6 +18,8 @@ import org.apache.kafka.clients.producer.ProducerConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.opentelemetry.api.trace.SpanKind;
+import io.opentelemetry.instrumentation.annotations.WithSpan;
 import kz.hackload.ticketing.service.provider.application.AddPlaceToOrderApplicationService;
 import kz.hackload.ticketing.service.provider.application.AddPlaceToOrderUseCase;
 import kz.hackload.ticketing.service.provider.application.CancelOrderApplicationService;
@@ -80,6 +82,7 @@ public final class ApplicationRunner
 {
     private static final Logger LOG = LoggerFactory.getLogger(ApplicationRunner.class);
 
+    @WithSpan(kind = SpanKind.INTERNAL)
     public static void main(String[] args)
     {
         final long startNano = System.nanoTime();
@@ -131,7 +134,7 @@ public final class ApplicationRunner
         properties.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringSerializer");
 
         properties.put(ConsumerConfig.GROUP_ID_CONFIG, System.getenv("KAFKA_CONSUMER_GROUP_ID"));
-        properties.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+        properties.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest");
         properties.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringDeserializer");
         properties.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringDeserializer");
 

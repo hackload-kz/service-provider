@@ -21,6 +21,7 @@
         <!-- Observability -->
         <slfj.version>2.0.17</slfj.version>
         <logback.version>1.5.18</logback.version>
+        <io.opentelemetry.instrumentation.version>2.18.1</io.opentelemetry.instrumentation.version>
 
         <!-- Web Http -->
         <javalin.version>6.6.0</javalin.version>
@@ -121,6 +122,11 @@
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-classic</artifactId>
             <version>${logback.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.opentelemetry.instrumentation</groupId>
+            <artifactId>opentelemetry-instrumentation-annotations</artifactId>
+            <version>${io.opentelemetry.instrumentation.version}</version>
         </dependency>
 
         <!-- Web Http-->

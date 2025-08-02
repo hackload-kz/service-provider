@@ -12,6 +12,8 @@ module kz.hackload.ticketing.service.provider.infrastructure
     requires org.jspecify;
     requires org.postgresql.jdbc;
     requires org.slf4j;
+    requires io.opentelemetry.instrumentation_annotations;
+    requires io.opentelemetry.api;
 
     exports kz.hackload.ticketing.service.provider.infrastructure.adapters.incoming.http to com.fasterxml.jackson.databind;
     exports kz.hackload.ticketing.service.provider.infrastructure.adapters.incoming.kafka to com.fasterxml.jackson.databind;
