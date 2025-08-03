@@ -201,6 +201,6 @@ public final class PlaceResourceJavalinHttpAdapter
 
         final int pageSize = Integer.parseInt(pageSizeQuery);
 
-        return Math.min(pageSize, 100);
+        return Math.min(pageSize, 1000);
     }
 }
