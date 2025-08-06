@@ -31,7 +31,6 @@ public final class OutboxSenderKafkaAdapter implements OutboxSender
             record.headers().add(new RecordHeader("event_type", eventType.getBytes(StandardCharsets.UTF_8)));
 
             producer.send(record).get();
-            log.info("Message sent to {} with routing key {} and payload {}", destination, routingKey, payload);
         }
         catch (InterruptedException e)
         {

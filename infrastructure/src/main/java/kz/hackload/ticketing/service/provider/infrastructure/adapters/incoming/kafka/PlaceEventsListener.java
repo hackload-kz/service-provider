@@ -52,8 +52,6 @@ public final class PlaceEventsListener implements DomainEventsListener
     {
         final String value = record.value();
 
-        LOG.info("Got {}", value);
-
         final Class<? extends PlaceDomainEvent> eventType = mapToPlaceDomainEventType(
                 new String(record.headers().lastHeader("event_type").value(), StandardCharsets.UTF_8)
         );
