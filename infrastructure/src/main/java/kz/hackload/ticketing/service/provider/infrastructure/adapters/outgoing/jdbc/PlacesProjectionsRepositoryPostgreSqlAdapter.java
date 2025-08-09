@@ -36,7 +36,7 @@ public final class PlacesProjectionsRepositoryPostgreSqlAdapter implements Place
             statement.setInt(2, row.number());
             statement.setInt(3, seat.number());
 
-            statement.executeUpdate();
+            statement.execute();
         }
         catch (final SQLException e)
         {

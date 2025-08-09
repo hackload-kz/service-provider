@@ -66,7 +66,7 @@ public final class OutboxRepositoryPostgreSqlAdapter implements OutboxRepository
     {
         final Connection connection = transactionManager.currentConnection();
 
-        try (final var statement = connection.prepareStatement("SELECT id, topic, aggregate_id, aggregate_revision, event_type, payload FROM outbox WHERE aggregate_type = ? ORDER BY aggregate_revision FOR UPDATE LIMIT 1"))
+        try (final var statement = connection.prepareStatement("SELECT id, topic, aggregate_id, aggregate_revision, event_type, payload FROM outbox WHERE aggregate_type = ? ORDER BY aggregate_revision FOR UPDATE SKIP LOCKED LIMIT 1"))
         {
             statement.setString(1, aggregateType);
 

@@ -83,7 +83,7 @@ public final class ApplicationRunner
     private static final Logger LOG = LoggerFactory.getLogger(ApplicationRunner.class);
 
     @WithSpan(kind = SpanKind.INTERNAL)
-    public static void main(String[] args)
+    public static void main(String[] args) throws InterruptedException
     {
         final long startNano = System.nanoTime();
 
@@ -95,6 +95,15 @@ public final class ApplicationRunner
         hikariConfig.setMaximumPoolSize(Integer.parseInt(System.getenv("DB_CONNECTION_POOL_SIZE")));
 
         final DataSource dataSource = new HikariDataSource(hikariConfig);
+
+        final HikariConfig projectionsHikariConfig = new HikariConfig();
+        projectionsHikariConfig.setJdbcUrl(System.getenv("PROJECTIONS_DB_JDBC_URL"));
+        projectionsHikariConfig.setUsername(System.getenv("PROJECTIONS_DB_JDBC_USER"));
+        projectionsHikariConfig.setPassword(System.getenv("PROJECTIONS_DB_JDBC_PASSWORD"));
+        projectionsHikariConfig.setMaximumPoolSize(Integer.parseInt(System.getenv("PROJECTIONS_DB_CONNECTION_POOL_SIZE")));
+
+        final DataSource projectionsDataSource = new HikariDataSource(projectionsHikariConfig);
+
         final JdbcTransactionManager jdbcTransactionManager = new JdbcTransactionManager(dataSource);
 
         final OrdersRepository ordersRepository = new OrdersRepositoryPostgreSqlAdapter(jdbcTransactionManager);
@@ -102,8 +111,8 @@ public final class ApplicationRunner
         final OutboxRepository outboxRepository = new OutboxRepositoryPostgreSqlAdapter(jdbcTransactionManager);
         final OrdersQueryRepository ordersQueryRepository = new OrdersQueryRepositoryPostgreSqlAdapter(dataSource);
         final PlacesQueryRepository placesQueryRepository = new PlacesQueryRepositoryPostgreSqlAdapter(dataSource);
-        final OrdersProjectionsRepository ordersProjectionsRepository = new OrdersProjectionsRepositoryPostgreSqlAdapter(dataSource);
-        final PlacesProjectionsRepository placesProjectionsRepository = new PlacesProjectionsRepositoryPostgreSqlAdapter(dataSource);
+        final OrdersProjectionsRepository ordersProjectionsRepository = new OrdersProjectionsRepositoryPostgreSqlAdapter(projectionsDataSource);
+        final PlacesProjectionsRepository placesProjectionsRepository = new PlacesProjectionsRepositoryPostgreSqlAdapter(projectionsDataSource);
 
         final Clocks clocks = new RealClock();
         final JsonMapper jsonMapper = new JacksonJsonMapper();
@@ -134,9 +143,10 @@ public final class ApplicationRunner
         properties.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringSerializer");
 
         properties.put(ConsumerConfig.GROUP_ID_CONFIG, System.getenv("KAFKA_CONSUMER_GROUP_ID"));
-        properties.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest");
+        properties.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, System.getenv("KAFKA_CONSUMER_OFFSET"));
         properties.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringDeserializer");
         properties.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringDeserializer");
+        properties.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false");
 
         final PlacesProjectionService placesProjectionService = new PlacesProjectionService(placesProjectionsRepository);
         final KafkaConsumer<String, String> placeEventsKafkaConsumer = new KafkaConsumer<>(properties);

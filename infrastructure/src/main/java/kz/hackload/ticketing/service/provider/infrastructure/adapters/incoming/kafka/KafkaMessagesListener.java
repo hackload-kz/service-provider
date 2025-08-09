@@ -7,7 +7,9 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
+import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 
 import org.slf4j.Logger;
@@ -28,6 +30,9 @@ public final class KafkaMessagesListener
         }
     });
 
+    private static final AtomicLong COUNTER = new AtomicLong(0);
+    private static final Duration POLL_INTERVAL = Duration.ofMillis(1L);
+
     private final KafkaConsumer<String, String> consumer;
     private final String topic;
     private final DomainEventsListener listener;
@@ -45,22 +50,25 @@ public final class KafkaMessagesListener
     public void start()
     {
         LOG.info("Starting kafka message listener {}", topic);
-        scheduler.scheduleAtFixedRate(this::consume, 100L, 10L, TimeUnit.MILLISECONDS);
+        scheduler.scheduleAtFixedRate(this::consume, 0L, 10_000_000L, TimeUnit.NANOSECONDS);
     }
 
     public void consume()
     {
-        consumer.poll(Duration.ofMillis(10L)).forEach(record ->
+        try
         {
-            try
+            for (ConsumerRecord<String, String> stringStringConsumerRecord : consumer.poll(POLL_INTERVAL))
             {
-                listener.hande(record);
+//                LOG.info("Message#{} is {}", COUNTER.incrementAndGet(), stringStringConsumerRecord);
+                listener.hande(stringStringConsumerRecord);
             }
-            catch (final RuntimeException e)
-            {
-                LOG.error(e.getMessage(), e);
-            }
-        });
+            consumer.commitSync();
+        }
+        catch (final RuntimeException e)
+        {
+            LOG.error("Consumer encountered with an error. It is stopped!", e);
+            stop();
+        }
     }
 
     public void stop()
