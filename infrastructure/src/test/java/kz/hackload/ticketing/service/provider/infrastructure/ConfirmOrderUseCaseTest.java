@@ -45,9 +45,6 @@ public class ConfirmOrderUseCaseTest extends AbstractIntegrationTest
     void orderConfirmed() throws PlaceCanNotBeAddedToOrderException,
             PlaceAlreadySelectedException,
             OrderNotStartedException,
-            PlaceIsNotSelectedException,
-            PlaceSelectedForAnotherOrderException,
-            PlaceAlreadyAddedException,
             NoPlacesAddedException
     {
         // given
@@ -60,7 +57,10 @@ public class ConfirmOrderUseCaseTest extends AbstractIntegrationTest
 
         final OrderId orderId = startOrderUseCase.startOrder();
         selectPlaceUseCase.selectPlaceFor(placeId, orderId);
-        addPlaceToOrderUseCase.addPlaceToOrder(placeId, orderId);
+
+        Awaitility.await()
+                .atMost(Duration.ofSeconds(10L))
+                .until(() -> ordersQueryRepository.getOrder(orderId).map(o -> o.placesCount() == 1).orElse(false));
 
         final Instant submitTime = Instant.now();
         clocks.setClock(Clock.fixed(submitTime, ZoneId.systemDefault()));

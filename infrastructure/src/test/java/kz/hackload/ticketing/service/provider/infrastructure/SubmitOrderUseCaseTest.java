@@ -40,12 +40,7 @@ public class SubmitOrderUseCaseTest extends AbstractIntegrationTest
     }
 
     @Test
-    void orderSubmitted() throws PlaceCanNotBeAddedToOrderException,
-            PlaceAlreadySelectedException,
-            OrderNotStartedException,
-            PlaceIsNotSelectedException,
-            PlaceSelectedForAnotherOrderException,
-            PlaceAlreadyAddedException
+    void orderSubmitted() throws PlaceCanNotBeAddedToOrderException, PlaceAlreadySelectedException
     {
         // given
         final Instant startTime = Instant.now();
@@ -57,7 +52,10 @@ public class SubmitOrderUseCaseTest extends AbstractIntegrationTest
 
         final OrderId orderId = startOrderUseCase.startOrder();
         selectPlaceUseCase.selectPlaceFor(placeId, orderId);
-        addPlaceToOrderUseCase.addPlaceToOrder(placeId, orderId);
+
+        Awaitility.await()
+                .atMost(Duration.ofSeconds(10L))
+                .until(() -> ordersQueryRepository.getOrder(orderId).map(o -> o.placesCount() == 1).orElse(false));
 
         JavalinTest.test(server, (_, c) ->
         {
