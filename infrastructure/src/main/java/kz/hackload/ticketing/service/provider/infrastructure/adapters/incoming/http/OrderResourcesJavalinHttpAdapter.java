@@ -132,10 +132,11 @@ public class OrderResourcesJavalinHttpAdapter
 
     private void getOrder(final Context context)
     {
-        final OrderId orderId = new OrderId(UUID.fromString(context.pathParam("id")));
+        final String orderIdParam = context.pathParam("id");
 
         try
         {
+            final OrderId orderId = new OrderId(UUID.fromString(orderIdParam));
             getOrderUseCase.getOrder(orderId).ifPresentOrElse(order ->
                     {
                         final GetOrderResponse response = new GetOrderResponse(
@@ -153,7 +154,7 @@ public class OrderResourcesJavalinHttpAdapter
         }
         catch (final RuntimeException e)
         {
-            LOG.error(e.getMessage(), e);
+            LOG.error("Failed to process request to order id " + orderIdParam + ": " + e.getMessage(), e);
             context.status(HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
