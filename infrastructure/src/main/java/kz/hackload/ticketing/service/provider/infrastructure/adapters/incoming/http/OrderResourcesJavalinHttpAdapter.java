@@ -134,6 +134,7 @@ public class OrderResourcesJavalinHttpAdapter
     {
         final String orderIdParam = context.pathParam("id");
 
+        LOG.info("Requesting order with id: {}", orderIdParam);
         try
         {
             final OrderId orderId = new OrderId(UUID.fromString(orderIdParam));
