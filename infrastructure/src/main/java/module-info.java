@@ -6,6 +6,10 @@ module kz.hackload.ticketing.service.provider.infrastructure
     requires com.zaxxer.hikari;
     requires java.sql;
     requires io.javalin;
+    requires openapi.specification;
+    requires javalin.openapi.plugin;
+    requires javalin.swagger.plugin;
+    requires javalin.redoc.plugin;
     requires kafka.clients;
     requires kz.hackload.ticketing.service.provider.application;
     requires kz.hackload.ticketing.service.provider.domain;

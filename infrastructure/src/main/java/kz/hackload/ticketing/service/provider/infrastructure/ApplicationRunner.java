@@ -9,6 +9,10 @@ import java.time.Duration;
 import java.util.Properties;
 
 import io.javalin.Javalin;
+import io.javalin.openapi.OpenApiInfo;
+import io.javalin.openapi.plugin.OpenApiPlugin;
+import io.javalin.openapi.plugin.redoc.ReDocPlugin;
+import io.javalin.openapi.plugin.swagger.SwaggerPlugin;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
@@ -166,7 +170,19 @@ public final class ApplicationRunner
         final OutboxScheduler outboxScheduler = new OutboxScheduler(jdbcTransactionManager, outboxRepository, outboxSender);
         outboxScheduler.start();
 
-        final Javalin httpServer = Javalin.create(config -> config.useVirtualThreads = true);
+        final Javalin httpServer = Javalin.create(config ->
+        {
+            final OpenApiPlugin openApiPlugin = new OpenApiPlugin(pluginConfig ->
+                pluginConfig.withDefinitionConfiguration((_, definition) ->
+                    definition.withInfo(openApiInfo -> openApiInfo.setTitle("Hackaton Event Provider"))
+                )
+            );
+            
+            config.registerPlugin(openApiPlugin);
+            config.registerPlugin(new SwaggerPlugin());
+            config.registerPlugin(new ReDocPlugin());
+            config.useVirtualThreads = true;
+        });
         new OrderResourcesJavalinHttpAdapter(httpServer, startOrderUseCase, submitOrderUseCase, confirmOrderUseCase, cancelOrderUseCase, getOrderUseCase);
         new PlaceResourceJavalinHttpAdapter(httpServer, createPlaceUseCase, selectPlaceUseCase, removePlaceFromOrderUseCase, getPlaceUseCase);
 
