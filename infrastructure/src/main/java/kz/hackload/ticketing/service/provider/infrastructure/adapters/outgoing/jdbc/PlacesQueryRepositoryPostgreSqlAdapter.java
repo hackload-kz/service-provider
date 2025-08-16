@@ -32,7 +32,12 @@ public final class PlacesQueryRepositoryPostgreSqlAdapter implements PlacesQuery
     public Optional<GetPlaceQueryResult> getPlace(final PlaceId placeId)
     {
         try (final Connection connection = dataSource.getConnection();
-             final PreparedStatement statement = connection.prepareStatement("select id, row, seat, is_free from places where id = ?"))
+             final PreparedStatement statement = connection.prepareStatement(
+                """
+                SELECT id, row, seat, is_free 
+                FROM places
+                WHERE id = ?
+                """))
         {
             final PGobject idParamPgObject = new PGobject();
             idParamPgObject.setValue(placeId.value().toString());
@@ -68,7 +73,18 @@ public final class PlacesQueryRepositoryPostgreSqlAdapter implements PlacesQuery
     {
         final List<GetPlaceQueryResult> places = new ArrayList<>(page * pageSize);
         try (final Connection connection = dataSource.getConnection();
-             final PreparedStatement statement = connection.prepareStatement("select id, row, seat, is_free from places limit ? offset ?"))
+             final PreparedStatement statement = connection.prepareStatement(
+                """
+                SELECT 
+                    id,
+                    row,
+                    seat,
+                    is_free
+                FROM places 
+                ORDER BY row, seat
+                LIMIT ? 
+                OFFSET ?
+                """))
         {
             statement.setInt(1, pageSize);
             statement.setInt(2, (page - 1) * pageSize);
