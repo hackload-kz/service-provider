@@ -1,10 +1,11 @@
 package kz.hackload.ticketing.service.provider.application;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Collectors;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import kz.hackload.ticketing.service.provider.domain.orders.Order;
 import kz.hackload.ticketing.service.provider.domain.orders.OrderId;
@@ -18,6 +19,8 @@ import kz.hackload.ticketing.service.provider.domain.places.PlacesRepository;
 
 public final class ReleasePlaceApplicationService implements ReleasePlaceUseCase
 {
+    private static final Logger LOG = LoggerFactory.getLogger(ReleasePlaceApplicationService.class);
+
     private final TransactionManager transactionManager;
 
     private final OrdersRepository ordersRepository;
@@ -70,7 +73,8 @@ public final class ReleasePlaceApplicationService implements ReleasePlaceUseCase
 
         if (orderIds.size() != 1)
         {
-            throw new IllegalStateException();
+            LOG.warn("Something is wrong. Places: {} are selected to Orders: {}", placeIds, orderIds);
+            return;
         }
 
         final OrderId orderId = orderIds.getFirst();
@@ -83,8 +87,8 @@ public final class ReleasePlaceApplicationService implements ReleasePlaceUseCase
 
         transactionManager.executeInTransaction(() ->
         {
-           places.forEach(place -> eventsDispatcher.dispatch(place.id(), place.uncommittedEvents()));
-           places.forEach(placesRepository::save);
+            places.forEach(place -> eventsDispatcher.dispatch(place.id(), place.uncommittedEvents()));
+            places.forEach(placesRepository::save);
         });
     }
 }
