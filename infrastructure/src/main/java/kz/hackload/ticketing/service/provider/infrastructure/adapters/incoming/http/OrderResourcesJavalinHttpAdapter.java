@@ -155,7 +155,7 @@ public class OrderResourcesJavalinHttpAdapter
         }
         catch (final RuntimeException e)
         {
-            LOG.error("Failed to process request to order id " + orderIdParam + ": " + e.getMessage(), e);
+            LOG.error("Failed to process request to order id {}: {}", orderIdParam, e.getMessage(), e);
             context.status(HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
