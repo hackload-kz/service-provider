@@ -62,6 +62,11 @@ public final class ReleasePlaceApplicationService implements ReleasePlaceUseCase
     @Override
     public void releasePlacesFromSingleOrder(final Set<PlaceId> placeIds) throws PlaceAlreadyReleasedException
     {
+        if (placeIds.isEmpty())
+        {
+            return;
+        }
+
         final List<Place> places = transactionManager.executeInTransaction(() -> placesRepository.findAll(placeIds));
 
         final List<OrderId> orderIds = places.stream()
