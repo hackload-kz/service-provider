@@ -108,7 +108,7 @@ public final class PlacesRepositoryPostgreSqlAdapter implements PlacesRepository
         final ArrayList<ResultSetRow> rsRows = new ArrayList<>();
 
         final Connection connection = transactionManager.currentConnection();
-        try (final PreparedStatement statement = connection.prepareStatement("SELECT * FROM events WHERE aggregate_id = ?"))
+        try (final PreparedStatement statement = connection.prepareStatement("SELECT * FROM events WHERE aggregate_id = ? ORDER BY revision ASC"))
         {
             final PGobject idParamPgObject = new PGobject();
             idParamPgObject.setValue(placeId.value().toString());
