@@ -22,23 +22,6 @@ TO BE DONE...
 
 ## Usage
 
-### Admin
-1. Create a place. Be careful with this method, the system is unfinished, and it does not check duplicates in rows and seats
-   ```shell
-   curl -X POST --verbose --location "http://localhost:8080/api/admin/v1/places" \
-    -H "Content-Type: application/json" \
-    -d '{
-          "row": 1,
-          "seat": 1
-        }'
-   ```
-   The result
-   ```json
-   {
-      "place_id": "1bf2726c-b6b7-459f-be3f-8124ecd7c619"
-   }
-   ```
-
 ### Partner
 1. Start an order
    ```shell
