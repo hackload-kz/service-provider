@@ -18,8 +18,6 @@
     sh run.sh
     ```
 
-TO BE DONE...
-
 ## Usage
 
 ### Partner
